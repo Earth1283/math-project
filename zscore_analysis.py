@@ -1,4 +1,5 @@
 import numpy as np
+import matplotlib.pyplot as plt
 
 def load_csv(file_path: str) -> np.ndarray:
     """
@@ -67,6 +68,27 @@ def calculate_zscore(data: np.ndarray) -> np.ndarray:
     std = np.std(data)
     return (data - mean) / std
 
+def plot_zscores(years: np.ndarray, co2_z: np.ndarray, temp_z: np.ndarray) -> None:
+    """
+    Creates and saves a time-series plot comparing standardized CO2 and temperature trends.
+    """
+    plt.figure(figsize=(12, 6))
+    
+    plt.plot(years, co2_z, label='CO2 Concentration (Z-score)', color='blue', linewidth=2)
+    plt.plot(years, temp_z, label='Temperature Change (Z-score)', color='red', linewidth=2, alpha=0.8)
+    
+    # Reference line at mean (0)
+    plt.axhline(0, color='black', linestyle='--', linewidth=1, alpha=0.7)
+    
+    plt.title('Standardized Trend Comparison: CO2 vs. Temperature Change')
+    plt.xlabel('Year')
+    plt.ylabel('Standard Deviations (Z-score)')
+    plt.legend()
+    plt.grid(True, linestyle=':', alpha=0.6)
+    
+    plt.savefig('zscore_comparison.png')
+    print("Plot saved to zscore_comparison.png")
+
 if __name__ == "__main__":
     years, co2, temp = load_and_align_data('data/co2-ppm.csv', 'data/surface-air-temp-change.csv')
     co2_z = calculate_zscore(co2)
@@ -75,3 +97,5 @@ if __name__ == "__main__":
     print(f"Standardization Complete.")
     print(f"CO2 Z-score: mean={np.mean(co2_z):.4f}, std={np.std(co2_z):.4f}")
     print(f"Temp Z-score: mean={np.mean(temp_z):.4f}, std={np.std(temp_z):.4f}")
+    
+    plot_zscores(years, co2_z, temp_z)
