@@ -1,12 +1,42 @@
 import numpy as np
-import matplotlib.pyplot as plt
 
 def load_csv(file_path: str) -> np.ndarray:
-    """Loads a CSV file into a NumPy array, skipping the header."""
-    return np.loadtxt(file_path, delimiter=',', skiprows=1)
+    """
+    Loads a CSV file into a NumPy array, skipping the header.
+    
+    Args:
+        file_path: Path to the CSV file.
+        
+    Returns:
+        A NumPy array containing the numeric data.
+        
+    Raises:
+        FileNotFoundError: If the file does not exist.
+        ValueError: If the file content is not numeric.
+    """
+    try:
+        return np.loadtxt(file_path, delimiter=',', skiprows=1)
+    except FileNotFoundError:
+        print(f"Error: File not found at {file_path}")
+        raise
+    except ValueError as e:
+        print(f"Error: Could not parse numeric data from {file_path}: {e}")
+        raise
+    except Exception as e:
+        print(f"An unexpected error occurred while loading {file_path}: {e}")
+        raise
 
 def load_and_align_data(co2_path: str, temp_path: str) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
-    """Loads and aligns CO2 and temperature data for years >= 1959."""
+    """
+    Loads and aligns CO2 and temperature data for years >= 1959.
+    
+    Args:
+        co2_path: Path to the CO2 ppm CSV file.
+        temp_path: Path to the surface air temperature change CSV file.
+        
+    Returns:
+        A tuple (years, co2_values, temp_values) as NumPy arrays.
+    """
     co2_data = load_csv(co2_path)
     temp_data = load_csv(temp_path)
     
@@ -17,10 +47,22 @@ def load_and_align_data(co2_path: str, temp_path: str) -> tuple[np.ndarray, np.n
     co2_filtered = co2_data[np.isin(co2_data[:, 0], common_years)]
     temp_filtered = temp_data[np.isin(temp_data[:, 0], common_years)]
     
+    # Sort by year to ensure they are perfectly aligned
+    co2_filtered = co2_filtered[co2_filtered[:, 0].argsort()]
+    temp_filtered = temp_filtered[temp_filtered[:, 0].argsort()]
+    
     return common_years, co2_filtered[:, 1], temp_filtered[:, 1]
 
 def calculate_zscore(data: np.ndarray) -> np.ndarray:
-    """Calculates the Z-score for a given numeric array."""
+    """
+    Calculates the Z-score for a given numeric array.
+    
+    Args:
+        data: A NumPy array of numeric values.
+        
+    Returns:
+        A NumPy array containing the standardized Z-scores.
+    """
     mean = np.mean(data)
     std = np.std(data)
     return (data - mean) / std
