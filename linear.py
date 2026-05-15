@@ -1,4 +1,5 @@
 import numpy as np
+from sklearn.linear_model import LinearRegression
 
 def load_csv(file_path: str) -> np.ndarray:
     """
@@ -65,6 +66,27 @@ def load_and_align_data(co2_path: str, temp_path: str) -> tuple[np.ndarray, np.n
     
     return years, co2_values, temp_values
 
+def fit_model(X: np.ndarray, y: np.ndarray) -> tuple[LinearRegression, np.ndarray, float, float, float]:
+    """
+    Fits a linear regression model to the data.
+    
+    Args:
+        X: Feature array (CO2 values).
+        y: Target array (Temperature values).
+        
+    Returns:
+        A tuple (model, X_reshaped, r2, coef, intercept).
+    """
+    X_reshaped = X.reshape(-1, 1)
+    model = LinearRegression()
+    model.fit(X_reshaped, y)
+    
+    r2 = model.score(X_reshaped, y)
+    coef = model.coef_[0]
+    intercept = model.intercept_
+    
+    return model, X_reshaped, r2, coef, intercept
+
 if __name__ == "__main__":
     CO2_FILE = 'data/co2-ppm.csv'
     TEMP_FILE = 'data/surface-air-temp-change.csv'
@@ -76,5 +98,14 @@ if __name__ == "__main__":
         print("\nFirst 5 entries (Year, CO2, Temp):")
         for i in range(min(5, len(years))):
             print(f"{int(years[i])}: {co2[i]:.2f} ppm, {temp[i]:.2f} °C")
+            
+        # Fit model
+        model, X_reshaped, r2, coef, intercept = fit_model(co2, temp)
+        
+        print("\nModel Statistics:")
+        print(f"R² Score:    {r2:.4f}")
+        print(f"Coefficient: {coef:.4f}")
+        print(f"Intercept:   {intercept:.4f}")
+        
     except Exception as e:
         print(f"Failed to load and align data: {e}")
