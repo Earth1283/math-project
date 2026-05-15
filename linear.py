@@ -1,5 +1,6 @@
 import numpy as np
 from sklearn.linear_model import LinearRegression
+import matplotlib.pyplot as plt
 
 def load_csv(file_path: str) -> np.ndarray:
     """
@@ -87,6 +88,41 @@ def fit_model(X: np.ndarray, y: np.ndarray) -> tuple[LinearRegression, np.ndarra
     
     return model, X_reshaped, r2, coef, intercept
 
+def plot_results(X: np.ndarray, y: np.ndarray, model: LinearRegression) -> None:
+    """
+    Plots the regression results and residuals.
+    
+    Args:
+        X: Feature array (reshaped).
+        y: Target array.
+        model: Trained LinearRegression model.
+    """
+    y_pred = model.predict(X)
+    residuals = y - y_pred
+    
+    fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(10, 10))
+    
+    # Top Subplot: Regression Line
+    ax1.scatter(X, y, color='blue', label='Actual Data')
+    ax1.plot(X, y_pred, color='red', linewidth=2, label='Regression Line')
+    ax1.set_xlabel('CO2 (ppm)')
+    ax1.set_ylabel('Temperature Change (Degrees C)')
+    ax1.set_title('CO2 vs. Temperature Change')
+    ax1.legend()
+    ax1.grid(True)
+    
+    # Bottom Subplot: Residuals
+    ax2.scatter(y_pred, residuals, color='green', label='Residuals')
+    ax2.axhline(y=0, color='black', linestyle='--')
+    ax2.set_xlabel('Predicted Temperature Change')
+    ax2.set_ylabel('Residuals')
+    ax2.set_title('Residual Plot')
+    ax2.grid(True)
+    
+    plt.tight_layout()
+    plt.savefig('regression_analysis.png')
+    print("Plots saved to regression_analysis.png")
+
 if __name__ == "__main__":
     CO2_FILE = 'data/co2-ppm.csv'
     TEMP_FILE = 'data/surface-air-temp-change.csv'
@@ -106,6 +142,9 @@ if __name__ == "__main__":
         print(f"R² Score:    {r2:.4f}")
         print(f"Coefficient: {coef:.4f}")
         print(f"Intercept:   {intercept:.4f}")
+        
+        # Plot results
+        plot_results(X_reshaped, temp, model)
         
     except Exception as e:
         print(f"Failed to load and align data: {e}")
