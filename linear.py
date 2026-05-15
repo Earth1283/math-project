@@ -100,11 +100,16 @@ def plot_results(X: np.ndarray, y: np.ndarray, model: LinearRegression) -> None:
     y_pred = model.predict(X)
     residuals = y - y_pred
     
+    # Get coefficients for the equation
+    coef = model.coef_[0]
+    intercept = model.intercept_
+    equation = f"y = {coef:.4f}x + ({intercept:.4f})"
+    
     fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(10, 10))
     
     # Top Subplot: Regression Line
     ax1.scatter(X, y, color='blue', label='Actual Data')
-    ax1.plot(X, y_pred, color='red', linewidth=2, label='Regression Line')
+    ax1.plot(X, y_pred, color='red', linewidth=2, label=f'Regression Line\n{equation}')
     ax1.set_xlabel('CO2 (ppm)')
     ax1.set_ylabel('Temperature Change (Degrees C)')
     ax1.set_title('CO2 vs. Temperature Change')
