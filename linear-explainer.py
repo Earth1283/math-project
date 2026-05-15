@@ -38,7 +38,7 @@ class LinearRegressionExplainer(Scene):
         
         # 3. Best Fit Math and Residuals
         m_guess, b_guess = 0.005, -1.5
-        equation = Text("y = mx + b").to_corner(UR).shift(LEFT * 0.5)
+        equation = Text("y = mx + b", slant=ITALIC).to_corner(UR).shift(LEFT * 0.5)
         
         guess_line = axes.plot(
             lambda x: m_guess * x + b_guess,
@@ -63,3 +63,37 @@ class LinearRegressionExplainer(Scene):
         
         self.play(Create(residuals, lag_ratio=0.05))
         self.wait(2)
+
+        # 4. Python Code and Optimal Fit
+        code_snippet = "model = LinearRegression()\nmodel.fit(X, y)"
+        code = Code(
+            code_string=code_snippet,
+            language="python",
+            formatter_style="monokai",
+            add_line_numbers=False,
+            background="window",
+        ).to_corner(UL).scale(0.6).shift(DOWN * 0.5)
+
+        # Optimal parameters
+        m_opt, b_opt = 0.0106, -3.4445
+        optimal_line = axes.plot(
+            lambda x: m_opt * x + b_opt,
+            color=GREEN,
+            x_range=[310, 420]
+        )
+        
+        final_eq = Text("y = 0.0106x - 3.4445", color=GREEN).next_to(code, DOWN, buff=0.5).align_to(code, LEFT)
+
+        self.play(
+            FadeOut(equation),
+            FadeIn(code),
+        )
+        self.wait(1)
+
+        self.play(
+            Transform(guess_line, optimal_line),
+            FadeOut(residuals),
+            Write(final_eq),
+            run_time=2
+        )
+        self.wait(3)
