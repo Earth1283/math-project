@@ -103,18 +103,27 @@ def plot_results(X: np.ndarray, y: np.ndarray, model: LinearRegression) -> None:
     # Get coefficients for the equation
     coef = model.coef_[0]
     intercept = model.intercept_
+    r2 = model.score(X, y)
     equation = f"y = {coef:.4f}x + ({intercept:.4f})"
     
-    fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(10, 10))
+    # High-Definition Figure
+    fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(12, 14), dpi=300)
     
     # Top Subplot: Regression Line
-    ax1.scatter(X, y, color='blue', label='Actual Data')
-    ax1.plot(X, y_pred, color='red', linewidth=2, label=f'Regression Line\n{equation}')
-    ax1.set_xlabel('CO2 (ppm)')
-    ax1.set_ylabel('Temperature Change (Degrees C)')
-    ax1.set_title('CO2 vs. Temperature Change')
-    ax1.legend()
-    ax1.grid(True)
+    ax1.scatter(X, y, color='blue', alpha=0.6, s=40, label='Actual Data')
+    ax1.plot(X, y_pred, color='red', linewidth=3, label=f'Regression Line\n{equation}')
+    ax1.set_xlabel('CO2 Concentration (ppm)', fontsize=12)
+    ax1.set_ylabel('Temperature Change (Degrees C)', fontsize=12)
+    ax1.set_title('Linear Regression: CO2 vs. Temperature Change (HD)', fontsize=16, fontweight='bold')
+    
+    # Statistical Annotation Box
+    stats_text = f"Model Statistics:\n$R^2 = {r2:.4f}$\nSlope = {coef:.4f}"
+    ax1.text(0.05, 0.95, stats_text, transform=ax1.transAxes, 
+             fontsize=12, verticalalignment='top', 
+             bbox=dict(boxstyle='round', facecolor='white', alpha=0.8))
+    
+    ax1.legend(loc='lower right', fontsize=10)
+    ax1.grid(True, linestyle='--', alpha=0.7)
     
     # Bottom Subplot: Residuals
     ax2.scatter(y_pred, residuals, color='green', label='Residuals')
