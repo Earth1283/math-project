@@ -107,3 +107,22 @@ class ZScoreExplainer(Scene):
         self.play(Transform(co2_line_raw, co2_z_line))
         self.wait(2)
 
+        # 4. Scene 3: Final Comparison
+        revelation_title = Text("The Hidden Correlation", font_size=32, color=YELLOW).to_edge(UP)
+        self.play(Transform(math_title, revelation_title))
+        
+        # Standardize Temp line
+        temp_mean = np.mean(temp_raw)
+        temp_std = np.std(temp_raw)
+        temp_z_line = ax_z.plot_line_graph(X, (temp_raw - temp_mean) / temp_std, add_vertex_dots=False, line_color=RED)
+        
+        label_z_co2 = Text("CO2 (Standardized)", font_size=18, color=BLUE).next_to(ax_z, UP, buff=0.2).shift(LEFT * 2)
+        label_z_temp = Text("Temp (Standardized)", font_size=18, color=RED).next_to(ax_z, UP, buff=0.2).shift(RIGHT * 2)
+
+        self.play(Create(temp_z_line), FadeIn(label_z_co2), FadeIn(label_z_temp))
+        self.wait(1)
+        
+        conclusion = Text("Trends become comparable once scales are unified.", font_size=24).to_edge(DOWN, buff=0.5)
+        self.play(Write(conclusion))
+        self.wait(5)
+
