@@ -23,17 +23,20 @@ class ZScoreExplainer(Scene):
         line_co2 = ax_co2.plot_line_graph(X, co2_raw, add_vertex_dots=False, line_color=BLUE)
         line_temp = ax_temp.plot_line_graph(X, temp_raw, add_vertex_dots=False, line_color=RED)
         
+        # Calculate squashed temp line on ax_co2
+        # This represents how the small temp values (~0.5) look on the CO2 axis (300-420)
+        line_temp_squashed = ax_co2.plot_line_graph(X, temp_raw, add_vertex_dots=False, line_color=RED)
+        
         self.play(Create(ax_co2), Create(ax_temp), FadeIn(label_co2), FadeIn(label_temp))
         self.play(Create(line_co2), Create(line_temp))
         self.wait(1)
         
         # Attempt to Merge (The Awkward Part)
         self.play(
-            ax_temp.animate.move_to(ax_co2),
-            label_temp.animate.move_to(label_co2),
-            line_temp.animate.move_to(line_co2),
             FadeOut(ax_temp),
-            FadeOut(label_temp)
+            FadeOut(label_temp),
+            Transform(line_temp, line_temp_squashed),
+            line_co2.animate.set_stroke(opacity=0.3)
         )
         
         awkward_text = Text("well that's awkward 😅", color=YELLOW, font_size=28).next_to(ax_co2, DOWN, buff=0.5)
@@ -71,40 +74,52 @@ class ZScoreExplainer(Scene):
         co2_mean = np.mean(co2_raw)
         co2_std = np.std(co2_raw)
         
-        # Initial line: relative to its mean but offset by a visible amount (Issue 1)
-        # We use the actual noisy data for consistency (Issue 2)
-        offset = 1.5
-        co2_line_raw = ax_z.plot_line_graph(
+        # Hidden axis to keep centered-but-unscaled data visible
+        # Range covers the raw deviation (approx -50 to 50)
+        ax_hidden = Axes(
+            x_range=[1950, 2030, 10], 
+            y_range=[-60, 60, 10], 
+            x_length=8, 
+            y_length=4
+        ).shift(DOWN * 0.5)
+        
+        # 1. Shift
+        shift_text = Text("1. Shift (Subtract Mean)", font_size=24, color=BLUE).to_edge(DL, buff=1.0).shift(UP * 2)
+        
+        # Start with uncentered line (on ax_hidden for visibility)
+        co2_line_offset = ax_hidden.plot_line_graph(
             X, 
-            (co2_raw - co2_mean) + offset, 
+            (co2_raw - co2_mean) + 30, # Offset for visual "shifting"
             add_vertex_dots=False, 
             line_color=BLUE
         )
         
-        # 1. Shift
-        shift_text = Text("1. Shift (Subtract Mean)", font_size=24, color=BLUE).to_edge(DL, buff=1.0)
+        self.play(Write(math_title), Write(formula))
+        self.wait(1)
+        self.play(Create(ax_z), Create(co2_line_offset))
+        
         self.play(Write(shift_text))
-        # Transform to 0 offset (relative to its mean)
-        co2_line_centered = ax_z.plot_line_graph(
+        # Transform to centered line
+        co2_line_centered = ax_hidden.plot_line_graph(
             X, 
             (co2_raw - co2_mean), 
             add_vertex_dots=False, 
             line_color=BLUE
         )
-        self.play(Transform(co2_line_raw, co2_line_centered))
+        self.play(Transform(co2_line_offset, co2_line_centered))
         self.wait(1)
         
         # 2. Scale
-        scale_text = Text("2. Scale (Divide by Std Dev)", font_size=24, color=BLUE).next_to(shift_text, DOWN, aligned_edge=LEFT)
+        scale_text = Text("2. Scale (Divide by Std Dev)", font_size=24, color=BLUE).next_to(shift_text, UP, aligned_edge=LEFT)
         self.play(Write(scale_text))
-        # Divide by standard deviation
+        # Divide by standard deviation - Transform to the true ax_z scale
         co2_z_line = ax_z.plot_line_graph(
             X, 
             (co2_raw - co2_mean) / co2_std, 
             add_vertex_dots=False, 
             line_color=BLUE
         )
-        self.play(Transform(co2_line_raw, co2_z_line))
+        self.play(Transform(co2_line_offset, co2_z_line))
         self.wait(2)
 
         # 4. Scene 3: Final Comparison
