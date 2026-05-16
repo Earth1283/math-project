@@ -72,20 +72,30 @@ def plot_zscores(years: np.ndarray, co2_z: np.ndarray, temp_z: np.ndarray) -> No
     """
     Creates and saves a time-series plot comparing standardized CO2 and temperature trends.
     """
-    plt.figure(figsize=(12, 6))
+    # Calculate correlation coefficient (R)
+    correlation = np.corrcoef(co2_z, temp_z)[0, 1]
     
-    plt.plot(years, co2_z, label='CO2 Concentration (Z-score)', color='blue', linewidth=2)
-    plt.plot(years, temp_z, label='Temperature Change (Z-score)', color='red', linewidth=2, alpha=0.8)
+    # High-Definition Figure
+    plt.figure(figsize=(14, 8), dpi=300)
+    
+    plt.plot(years, co2_z, label='CO2 Concentration (Z-score)', color='blue', linewidth=2.5)
+    plt.plot(years, temp_z, label='Temperature Change (Z-score)', color='orange', linewidth=2.5, alpha=0.8)
     
     # Reference line at mean (0)
-    plt.axhline(0, color='black', linestyle='--', linewidth=1, alpha=0.7)
+    plt.axhline(0, color='black', linestyle='--', linewidth=1.5, alpha=0.7)
     
-    plt.title('Standardized Trend Comparison: CO2 vs. Temperature Change')
-    plt.xlabel('Year')
-    plt.ylabel('Standard Deviations (Z-score)')
-    plt.legend()
+    # Correlation Annotation Box
+    plt.text(0.02, 0.95, f"Correlation Coefficient:\n$R = {correlation:.4f}$", 
+             transform=plt.gca().transAxes, fontsize=12, verticalalignment='top', 
+             bbox=dict(boxstyle='round', facecolor='white', alpha=0.8))
+    
+    plt.title('Standardized Trend Comparison: CO2 vs. Temperature (HD)', fontsize=18, fontweight='bold')
+    plt.xlabel('Year', fontsize=14)
+    plt.ylabel('Standard Deviations (Z-score)', fontsize=14)
+    plt.legend(loc='lower right', fontsize=12)
     plt.grid(True, linestyle=':', alpha=0.6)
     
+    plt.tight_layout()
     plt.savefig('zscore_comparison.png')
     print("Plot saved to zscore_comparison.png")
 
