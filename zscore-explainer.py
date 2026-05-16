@@ -47,3 +47,43 @@ class ZScoreExplainer(Scene):
         self.play(Write(awkward_text))
         self.wait(2)
         self.play(FadeOut(VGroup(ax_co2, line_co2, line_temp, label_co2, awkward_text, title)))
+
+        # 3. Scene 2: Standardizing CO2
+        math_title = Text("Standardization: Z-Score", font_size=32).to_edge(UP)
+        
+        # formula: z = (x - mu) / sigma
+        z_prefix = Text("z = ", font_size=36)
+        num = Text("x - \u03bc", font_size=36)
+        den = Text("\u03c3", font_size=36)
+        frac_line = Line(LEFT, RIGHT).scale(0.5).next_to(num, DOWN, buff=0.1)
+        den.next_to(frac_line, DOWN, buff=0.1)
+        frac = VGroup(num, frac_line, den)
+        formula = VGroup(z_prefix, frac).arrange(RIGHT, buff=0.2).shift(UP * 1.5)
+        
+        self.play(Write(math_title), Write(formula))
+        self.wait(1)
+        
+        # Standard Axes (Z-score scale)
+        ax_z = Axes(x_range=[1950, 2030, 10], y_range=[-3, 3, 1], x_length=8, y_length=4).shift(DOWN * 0.5)
+        self.play(Create(ax_z))
+        
+        # Simplified data for animation
+        co2_mean = np.mean(co2_raw)
+        co2_std = np.std(co2_raw)
+        
+        # Start line (uncentered on Z-scale)
+        co2_line_raw = ax_z.plot(lambda x: 315 + 1.6 * (x - 1959), x_range=[1959, 2020], color=BLUE)
+        
+        # 1. Shift
+        shift_text = Text("1. Shift (Subtract Mean)", font_size=24, color=BLUE).to_edge(DL, buff=1.0)
+        self.play(Write(shift_text))
+        co2_line_centered = ax_z.plot(lambda x: 1.6 * (x - 1959) - (co2_mean - 315), x_range=[1959, 2020], color=BLUE)
+        self.play(Transform(co2_line_raw, co2_line_centered))
+        self.wait(1)
+        
+        # 2. Scale
+        scale_text = Text("2. Scale (Divide by Std Dev)", font_size=24, color=BLUE).next_to(shift_text, DOWN, aligned_edge=LEFT)
+        self.play(Write(scale_text))
+        co2_z_line = ax_z.plot(lambda x: (1.6 * (x - 1959) - (co2_mean - 315)) / co2_std, x_range=[1959, 2020], color=BLUE)
+        self.play(Transform(co2_line_raw, co2_z_line))
+        self.wait(2)
