@@ -1,8 +1,7 @@
-.npm-cache/
-.worktrees/
 media/
 __pycache__/
 .pytest_cache/
-*2026-05-*
 *.DS_Store
 desmos/
+.npm-cache/
+.worktrees/
