@@ -3,6 +3,19 @@ import numpy as np
 
 class ZScoreExplainer(Scene):
     def construct(self):
+        # --- Helpers for Subscripts ---
+        def get_subscript(main_text, sub_text, color=WHITE, font_size=24):
+            main = Text(main_text, font_size=font_size, color=color)
+            sub = Text(sub_text, font_size=font_size * 0.65, color=color)
+            sub.next_to(main, DR, buff=0.03).shift(UP * 0.08)
+            return VGroup(main, sub)
+
+        def get_superscript(main_text, super_text, color=WHITE, font_size=24):
+            main = Text(main_text, font_size=font_size, color=color)
+            sup = Text(super_text, font_size=font_size * 0.6, color=color)
+            sup.next_to(main, UR, buff=0.02).shift(DOWN * 0.05)
+            return VGroup(main, sup)
+
         # 1. Setup Data
         np.random.seed(42)
         X = np.linspace(1959, 2020, 60)
@@ -40,16 +53,17 @@ class ZScoreExplainer(Scene):
             y_label=Text("C", font_size=14)
         )
         
-        label_co2 = Text("CO2 Concentration", font_size=20, color=BLUE).next_to(ax_co2, UP)
+        label_co2 = VGroup(
+            get_subscript("CO", "2", font_size=20, color=BLUE), 
+            Text(" Concentration", font_size=20, color=BLUE)
+        ).arrange(RIGHT, buff=0.1).next_to(ax_co2, UP)
+        
         label_temp = Text("Temperature Change", font_size=20, color=ORANGE).next_to(ax_temp, UP)
         
-        # Use plot for simple lines
         line_co2 = ax_co2.plot_line_graph(X, co2_raw, add_vertex_dots=False, line_color=BLUE)
         line_temp = ax_temp.plot_line_graph(X, temp_raw, add_vertex_dots=False, line_color=ORANGE)
         
         # Calculate squashed temp line on ax_co2
-        # FIX: Add 300 to the temp values so they appear at the bottom of the CO2 axis (300-420)
-        # instead of hundreds of units off-screen.
         line_temp_squashed = ax_co2.plot_line_graph(X, 300 + temp_raw, add_vertex_dots=False, line_color=ORANGE)
         
         self.play(
@@ -69,12 +83,11 @@ class ZScoreExplainer(Scene):
             line_co2.animate.set_stroke(opacity=0.3)
         )
         
-        # Use simple text to avoid encoding issues with emojis in some environments
         awkward_text = Text("well that's awkward...", color=YELLOW, font_size=28).next_to(ax_co2, DOWN, buff=0.5)
         self.play(Write(awkward_text))
         self.wait(2)
         
-        # FIX: Ensure ALL Scene 1 elements are faded out, including labels
+        # Ensure ALL Scene 1 elements are faded out
         self.play(FadeOut(VGroup(
             ax_co2, ax_co2_labels, 
             line_co2, line_temp_squashed, 
@@ -82,7 +95,10 @@ class ZScoreExplainer(Scene):
         )))
 
         # 3. Scene 2: Standardizing CO2
-        math_title = Text("Standardization: Z-Score", font_size=32).to_edge(UP)
+        math_title = VGroup(
+            Text("Standardization: ", font_size=32), 
+            get_subscript("CO", "2", font_size=32)
+        ).arrange(RIGHT, buff=0.1).to_edge(UP)
         
         # formula components
         z_prefix = Text("z", font_size=36)
@@ -110,28 +126,27 @@ class ZScoreExplainer(Scene):
         self.play(Indicate(sigma), Write(sigma_desc))
         self.wait(1)
         
-        # Standard Axes (Z-score scale)
+        # Standard Axes (Z-score scale) - ENLARGED for more visibility
         ax_z = Axes(
             x_range=[1950, 2030, 20], 
             y_range=[-3, 3, 1], 
-            x_length=8, 
-            y_length=4,
+            x_length=10, 
+            y_length=5,
             axis_config={"include_numbers": True, "label_constructor": Text}
         ).shift(DOWN * 0.5)
         
-        # Data logic - using noisy data for accuracy
         co2_mean = np.mean(co2_raw)
         co2_std = np.std(co2_raw)
         
-        # Hidden axis to keep centered-but-unscaled data visible
+        # Hidden axis for centered-but-unscaled data - ENLARGED to match ax_z
         ax_hidden = Axes(
             x_range=[1950, 2030, 20], 
             y_range=[-60, 60, 20], 
-            x_length=8, 
-            y_length=4
+            x_length=10, 
+            y_length=5
         ).shift(DOWN * 0.5)
         
-        # Start with uncentered line
+        # Start line
         co2_line_offset = ax_hidden.plot_line_graph(
             X, 
             (co2_raw - co2_mean) + 30, 
@@ -145,7 +160,6 @@ class ZScoreExplainer(Scene):
         # 1. Shift
         shift_text = Text("1. Shift (Subtract Mean)", font_size=24, color=YELLOW).to_edge(DL, buff=1.0).shift(UP * 1.5)
         self.play(Write(shift_text), Indicate(mu))
-        # Transform to centered line
         co2_line_centered = ax_hidden.plot_line_graph(
             X, 
             (co2_raw - co2_mean), 
@@ -158,7 +172,6 @@ class ZScoreExplainer(Scene):
         # 2. Scale
         scale_text = Text("2. Scale (Divide by Std Dev)", font_size=24, color=GREEN).next_to(shift_text, UP, aligned_edge=LEFT)
         self.play(Write(scale_text), Indicate(sigma))
-        # Transform to final Z-score line
         co2_z_line = ax_z.plot_line_graph(
             X, 
             (co2_raw - co2_mean) / co2_std, 
@@ -172,15 +185,24 @@ class ZScoreExplainer(Scene):
 
         # 4. Scene 3: Final Comparison
         revelation_title = Text("The Hidden Correlation", font_size=32, color=YELLOW).to_edge(UP)
-        self.play(Transform(math_title, revelation_title))
         
-        # Standardize Temp line
+        # Move formula to top right to clear space
+        self.play(
+            Transform(math_title, revelation_title),
+            formula.animate.scale(0.7).to_corner(UR).shift(LEFT * 0.5 + DOWN * 0.5)
+        )
+        
         temp_mean = np.mean(temp_raw)
         temp_std = np.std(temp_raw)
-        temp_z_line = ax_z.plot_line_graph(X, (temp_raw - temp_mean) / temp_std, add_vertex_dots=False, line_color=RED)
+        temp_z_line = ax_z.plot_line_graph(X, (temp_raw - temp_mean) / temp_std, add_vertex_dots=False, line_color=ORANGE)
         
-        label_z_co2 = Text("CO2 (Standardized)", font_size=18, color=BLUE).next_to(ax_z, UP, buff=0.2).shift(LEFT * 2)
-        label_z_temp = Text("Temp (Standardized)", font_size=18, color=RED).next_to(ax_z, UP, buff=0.2).shift(RIGHT * 2)
+        # Reposition labels
+        label_z_co2 = VGroup(
+            get_subscript("CO", "2", font_size=18, color=BLUE), 
+            Text(" (Standardized)", font_size=18, color=BLUE)
+        ).arrange(RIGHT, buff=0.05).next_to(ax_z, UP, buff=0.2).to_edge(LEFT, buff=1.5)
+        
+        label_z_temp = Text("Temp (Standardized)", font_size=18, color=ORANGE).next_to(ax_z, UP, buff=0.2).to_edge(RIGHT, buff=1.5)
 
         self.play(Create(temp_z_line), FadeIn(label_z_co2), FadeIn(label_z_temp))
         self.wait(1)
@@ -188,4 +210,3 @@ class ZScoreExplainer(Scene):
         conclusion = Text("Trends become comparable once scales are unified.", font_size=24).to_edge(DOWN, buff=0.5)
         self.play(Write(conclusion))
         self.wait(5)
-

@@ -112,9 +112,9 @@ def plot_results(X: np.ndarray, y: np.ndarray, model: LinearRegression) -> None:
     # Top Subplot: Regression Line
     ax1.scatter(X, y, color='blue', alpha=0.6, s=40, label='Actual Data')
     ax1.plot(X, y_pred, color='red', linewidth=3, label=f'Regression Line\n{equation}')
-    ax1.set_xlabel('CO2 Concentration (ppm)', fontsize=12)
+    ax1.set_xlabel('$CO_2$ Concentration (ppm)', fontsize=12)
     ax1.set_ylabel('Temperature Change (Degrees C)', fontsize=12)
-    ax1.set_title('Linear Regression: CO2 vs. Temperature Change (HD)', fontsize=16, fontweight='bold')
+    ax1.set_title('Linear Regression: $CO_2$ vs. Temperature Change', fontsize=16, fontweight='bold')
     
     # Statistical Annotation Box
     stats_text = f"Model Statistics:\n$R^2 = {r2:.4f}$\nSlope = {coef:.4f}"

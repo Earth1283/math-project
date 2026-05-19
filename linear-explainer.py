@@ -1,5 +1,7 @@
 from manim import *
 import numpy as np
+from sklearn.linear_model import LinearRegression
+from linear import load_and_align_data
 
 class LinearRegressionExplainer(Scene):
     def construct(self):
@@ -18,14 +20,32 @@ class LinearRegressionExplainer(Scene):
             return VGroup(main, sup)
 
         # 1. Introduction
-        title = Text("CO2 vs. Temperature Change", font_size=32).to_edge(UP, buff=0.5)
+        co2_label_title = get_subscript("CO", "2", font_size=32)
+        vs_text = Text(" vs. Temperature Change", font_size=32)
+        title = VGroup(co2_label_title, vs_text).arrange(RIGHT, buff=0.1).to_edge(UP, buff=0.5)
         self.play(Write(title))
         self.wait(1)
         
-        # Simulated Data for Visualization
-        np.random.seed(42)
-        X = np.linspace(315, 415, 30)
-        y = 0.01 * X - 3.2 + np.random.normal(0, 0.2, 30)
+        # --- Load REAL Data ---
+        try:
+            years, co2_vals, temp_vals = load_and_align_data('data/co2-ppm.csv', 'data/surface-air-temp-change.csv')
+            # Sample the data to 30 points for visual clarity in animation
+            step = len(years) // 30
+            X = co2_vals[::step]
+            y = temp_vals[::step]
+            
+            # Re-fit on the sampled data to get the exact parameters for the animation
+            model = LinearRegression()
+            X_reshaped = X.reshape(-1, 1)
+            model.fit(X_reshaped, y)
+            m_opt = model.coef_[0]
+            b_opt = model.intercept_
+            
+        except Exception as e:
+            # Fallback if data fails
+            X = np.linspace(315, 415, 30)
+            y = 0.01 * X - 3.2
+            m_opt, b_opt = 0.01, -3.2
         
         # Create Axes - Compact and shifted to bottom-left
         axes = Axes(
@@ -39,7 +59,8 @@ class LinearRegressionExplainer(Scene):
             }
         ).to_edge(DL, buff=1.0)
         
-        x_label = axes.get_x_axis_label(Text("CO2 (ppm)", font_size=18)).shift(UP * 0.2)
+        co2_label_axis = VGroup(get_subscript("CO", "2", font_size=18), Text(" Concentration (ppm)", font_size=18)).arrange(RIGHT, buff=0.1)
+        x_label = axes.get_x_axis_label(co2_label_axis).shift(UP * 0.2)
         y_label = axes.get_y_axis_label(Text("Temp (C)", font_size=18)).shift(RIGHT * 0.2)
         
         self.play(Create(axes), FadeIn(x_label), FadeIn(y_label))
@@ -50,21 +71,34 @@ class LinearRegressionExplainer(Scene):
         self.wait(1)
         
         # 3. Best Fit Math and Residuals
+        # Equation breakdown
+        m_term = Text("m", font_size=28, slant=ITALIC, color=YELLOW)
+        slope_text = Text(": Slope", font_size=20, color=YELLOW)
+        b_term = Text("b", font_size=28, slant=ITALIC, color=GREEN)
+        intercept_text = Text(": Intercept", font_size=20, color=GREEN)
+
+        m_desc = VGroup(m_term, slope_text).arrange(RIGHT, buff=0.1)
+        b_desc = VGroup(b_term, intercept_text).arrange(RIGHT, buff=0.1)
+
         m_guess, b_guess = 0.005, -1.5
         equation = Text("y = mx + b", slant=ITALIC, font_size=28).to_edge(RIGHT, buff=2.5).shift(UP * 2.0)
-        
+
+        # Descriptors next to equation
+        math_footnotes = VGroup(m_desc, b_desc).arrange(DOWN, aligned_edge=LEFT, buff=0.3).next_to(equation, DOWN, buff=0.4).align_to(equation, LEFT)
+
         residual_label = Text("Residuals =", font_size=20, color=RED)
         residual_math = Text("Observed - Predicted", font_size=20, color=RED).next_to(residual_label, RIGHT, buff=0.2)
         # Moved further from the right edge to avoid cutoff
-        residual_text = VGroup(residual_label, residual_math).next_to(equation, DOWN, buff=0.5).to_edge(RIGHT, buff=1.5)
-        
+        residual_text = VGroup(residual_label, residual_math).next_to(math_footnotes, DOWN, buff=0.6).to_edge(RIGHT, buff=1.5)
+
         guess_line = axes.plot(
             lambda x: m_guess * x + b_guess,
             color=YELLOW,
             x_range=[310, 420]
         )
-        
+
         self.play(Write(equation))
+        self.play(Write(math_footnotes))
         self.wait(0.5)
         self.play(Create(guess_line))
         self.wait(0.5)
@@ -97,7 +131,6 @@ class LinearRegressionExplainer(Scene):
         optimization_text = Text("Finding Optimal Fit...", font_size=22, color=GREEN).next_to(code, DOWN, buff=0.4).align_to(code, LEFT)
 
         # Optimal parameters
-        m_opt, b_opt = 0.0106, -3.4445
         optimal_line = axes.plot(
             lambda x: m_opt * x + b_opt,
             color=GREEN,
@@ -105,7 +138,9 @@ class LinearRegressionExplainer(Scene):
         )
         
         # --- Advanced Statistics Section ---
-        ss_res_val = np.sum((y - (m_opt * X + b_opt))**2)
+        # Calculate exactly based on the points shown on screen
+        y_pred_opt = m_opt * X + b_opt
+        ss_res_val = np.sum((y - y_pred_opt)**2)
         ss_tot_val = np.sum((y - np.mean(y))**2)
         r2_val = 1 - (ss_res_val / ss_tot_val)
         
@@ -118,6 +153,7 @@ class LinearRegressionExplainer(Scene):
         
         ss_eq_final = VGroup(
             get_subscript("SS", "res", color=YELLOW, font_size=24),
+            # Display real value
             Text(f"= {ss_res_val:.4f}", font_size=24, color=YELLOW)
         ).arrange(RIGHT, buff=0.1)
 
@@ -128,8 +164,8 @@ class LinearRegressionExplainer(Scene):
         r2_prefix = Text("R\u00b2 = 1 - ", font_size=24, color=GREEN)
         num_a = get_subscript("SS", "res", color=GREEN, font_size=16)
         den_a = get_subscript("SS", "tot", color=GREEN, font_size=16)
-        line_a = Line(LEFT, RIGHT, color=GREEN, stroke_width=1.5).scale(0.35).next_to(num_a, DOWN, buff=0.1)
-        den_a.next_to(line_a, DOWN, buff=0.1)
+        line_a = Line(LEFT, RIGHT, color=GREEN, stroke_width=1.5).scale(0.35).next_to(num_a, DOWN, buff=0.08)
+        den_a.next_to(line_a, DOWN, buff=0.08)
         frac_a = VGroup(num_a, line_a, den_a).next_to(r2_prefix, RIGHT, buff=0.15).shift(UP * 0.05)
         r2_stage_a = VGroup(r2_prefix, frac_a)
 
@@ -137,8 +173,8 @@ class LinearRegressionExplainer(Scene):
         r2_prefix_b = r2_prefix.copy()
         num_b = Text(f"{ss_res_val:.2f}", font_size=16, color=GREEN)
         den_b = Text(f"{ss_tot_val:.2f}", font_size=16, color=GREEN)
-        line_b = Line(LEFT, RIGHT, color=GREEN, stroke_width=1.5).scale(0.35).next_to(num_b, DOWN, buff=0.1)
-        den_b.next_to(line_b, DOWN, buff=0.1)
+        line_b = Line(LEFT, RIGHT, color=GREEN, stroke_width=1.5).scale(0.35).next_to(num_b, DOWN, buff=0.08)
+        den_b.next_to(line_b, DOWN, buff=0.08)
         frac_b = VGroup(num_b, line_b, den_b).next_to(r2_prefix_b, RIGHT, buff=0.15).shift(UP * 0.05)
         r2_stage_b = VGroup(r2_prefix_b, frac_b)
 
@@ -159,6 +195,7 @@ class LinearRegressionExplainer(Scene):
         # Animation Sequence
         self.play(
             FadeOut(equation),
+            FadeOut(math_footnotes),
             FadeOut(residual_text),
             FadeIn(code),
         )
