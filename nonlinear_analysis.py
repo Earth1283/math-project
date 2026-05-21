@@ -253,13 +253,14 @@ def fit_models(
 
     return func, popt, r2, y_pred, rmse
 
-def get_best_fit(x_data: np.ndarray, y_data: np.ndarray) -> tuple[str, Callable, np.ndarray, float, float]:
+def get_best_fit(x_data: np.ndarray, y_data: np.ndarray, models_to_test: list[str]) -> tuple[str, Callable, np.ndarray, float, float]:
     """
-    Identifies the model with the highest R^2 for the given data.
+    Identifies the model with the highest R^2 for the given data among specified models.
     
     Args:
         x_data: Independent variable data.
         y_data: Dependent variable data.
+        models_to_test: List of model names to compete.
         
     Returns:
         A tuple (model_name, function, parameters, r2, rmse).
@@ -270,7 +271,7 @@ def get_best_fit(x_data: np.ndarray, y_data: np.ndarray) -> tuple[str, Callable,
     best_r2 = -np.inf
     best_rmse = np.inf
     
-    for model_name in ["linear", "quadratic", "exponential", "rational_1_1", "rational_2_1"]:
+    for model_name in models_to_test:
         func, popt, r2, _, rmse = fit_models(x_data, y_data, model_name)
         if r2 > best_r2:
             best_r2 = r2
@@ -302,6 +303,7 @@ def plot_piecewise_comparison(
     s2_data: tuple[np.ndarray, np.ndarray, np.ndarray],
     s1_best: tuple[str, Callable, np.ndarray, float, float],
     s2_best: tuple[str, Callable, np.ndarray, float, float],
+    output_dir: str,
     breakpoint_year: int = 1990
 ):
     """
@@ -312,9 +314,10 @@ def plot_piecewise_comparison(
         s2_data: Segment 2 (years, co2, temp).
         s1_best: Best fit info for Segment 1.
         s2_best: Best fit info for Segment 2.
+        output_dir: Directory to save the plot.
         breakpoint_year: The year where segments split.
     """
-    os.makedirs(OUTPUT_DIR, exist_ok=True)
+    os.makedirs(output_dir, exist_ok=True)
     
     plt.figure(figsize=(14, 8), dpi=300)
     
@@ -362,7 +365,7 @@ def plot_piecewise_comparison(
     plt.legend(fontsize=10, loc='lower right', framealpha=0.9)
     plt.grid(True, linestyle=':', alpha=0.6)
     
-    output_path = os.path.join(OUTPUT_DIR, "piecewise_fit_comparison.png")
+    output_path = os.path.join(output_dir, "piecewise_fit_comparison.png")
     plt.savefig(output_path)
     plt.close()
     print(f"Plot saved to {output_path}")
@@ -372,7 +375,8 @@ def plot_residual_comparison(
     global_residuals: np.ndarray,
     piecewise_residuals: np.ndarray,
     global_r2: float,
-    piecewise_r2: float
+    piecewise_r2: float,
+    output_dir: str
 ):
     """
     Creates and saves a high-definition residual comparison plot.
@@ -383,8 +387,9 @@ def plot_residual_comparison(
         piecewise_residuals: Residuals from the piecewise nonlinear model.
         global_r2: R^2 score of the global linear model.
         piecewise_r2: R^2 score of the piecewise nonlinear model.
+        output_dir: Directory to save the plot.
     """
-    os.makedirs(OUTPUT_DIR, exist_ok=True)
+    os.makedirs(output_dir, exist_ok=True)
     
     plt.figure(figsize=(14, 8), dpi=300)
     
@@ -402,7 +407,7 @@ def plot_residual_comparison(
     plt.legend(fontsize=10, loc='upper left')
     plt.grid(True, linestyle=':', alpha=0.6)
     
-    output_path = os.path.join(OUTPUT_DIR, "residual_improvement.png")
+    output_path = os.path.join(output_dir, "residual_improvement.png")
     plt.savefig(output_path)
     plt.close()
     print(f"Residual plot saved to {output_path}")
@@ -415,59 +420,61 @@ def main():
     try:
         years, co2, temp = load_and_align_data(co2_path, temp_path)
         s1, s2 = segment_data(years, co2, temp)
-        
         print("Data segmented successfully.")
         
-        # 1. Global Linear Model
-        _, g_popt, g_r2, g_pred, g_rmse = fit_models(co2, temp, "linear")
+        # Global Linear baseline
+        _, _, g_r2, g_pred, g_rmse = fit_models(co2, temp, "linear")
         global_residuals = temp - g_pred
-        
-        # 2. Piecewise Nonlinear Model
-        print("\nTesting Models for Segment 1:")
-        for m in ["linear", "quadratic", "exponential", "rational_1_1", "rational_2_1"]:
-            _, _, r2, _, _ = fit_models(s1[1], s1[2], m)
-            print(f"  {m:15}: R^2 = {r2:.4f}")
 
-        print("\nTesting Models for Segment 2:")
-        for m in ["linear", "quadratic", "exponential", "rational_1_1", "rational_2_1"]:
-            _, _, r2, _, _ = fit_models(s2[1], s2[2], m)
-            print(f"  {m:15}: R^2 = {r2:.4f}")
+        # --- PASS 1: Baseline Nonlinear (Linear, Quad, Exp) ---
+        print("\n--- PASS 1: Baseline Nonlinear Analysis ---")
+        baseline_models = ["linear", "quadratic", "exponential"]
+        s1_best_bl = get_best_fit(s1[1], s1[2], baseline_models)
+        s2_best_bl = get_best_fit(s2[1], s2[2], baseline_models)
+        
+        # Combined metrics
+        # Seg 1
+        _, f1_bl, p1_bl, _, _ = s1_best_bl
+        pred1_bl = f1_bl(s1[1], *p1_bl)
+        # Seg 2
+        _, f2_bl, p2_bl, _, _ = s2_best_bl
+        pred2_bl = f2_bl(s2[1], *p2_bl)
+        
+        p_pred_bl = np.concatenate([pred1_bl, pred2_bl])
+        p_r2_bl = r2_score(temp, p_pred_bl)
+        p_res_bl = temp - p_pred_bl
+        
+        plot_piecewise_comparison(s1, s2, s1_best_bl, s2_best_bl, "nonlinear_results/baseline")
+        plot_residual_comparison(co2, global_residuals, p_res_bl, g_r2, p_r2_bl, "nonlinear_results/baseline")
 
-        # Identify best fits
-        s1_best = get_best_fit(s1[1], s1[2])
-        s2_best = get_best_fit(s2[1], s2[2])
+        # --- PASS 2: Rational Exploration (All models) ---
+        print("\n--- PASS 2: Rational Exploration Analysis ---")
+        all_models = ["linear", "quadratic", "exponential", "rational_1_1", "rational_2_1"]
+        s1_best_rt = get_best_fit(s1[1], s1[2], all_models)
+        s2_best_rt = get_best_fit(s2[1], s2[2], all_models)
         
-        print(f"\nSegment 1 Best Fit: {s1_best[0].capitalize()} (R^2 = {s1_best[3]:.4f}, RMSE = {s1_best[4]:.4f})")
-        print(f"Segment 2 Best Fit: {s2_best[0].capitalize()} (R^2 = {s2_best[3]:.4f}, RMSE = {s2_best[4]:.4f})")
+        # Combined metrics
+        # Seg 1
+        _, f1_rt, p1_rt, _, _ = s1_best_rt
+        pred1_rt = f1_rt(s1[1], *p1_rt)
+        # Seg 2
+        _, f2_rt, p2_rt, _, _ = s2_best_rt
+        pred2_rt = f2_rt(s2[1], *p2_rt)
         
-        # Calculate Piecewise Residuals
-        # Seg 1 residuals
-        _, f1, p1, _, _ = s1_best
-        res1 = s1[2] - f1(s1[1], *p1)
+        p_pred_rt = np.concatenate([pred1_rt, pred2_rt])
+        p_r2_rt = r2_score(temp, p_pred_rt)
+        p_res_rt = temp - p_pred_rt
         
-        # Seg 2 residuals
-        _, f2, p2, _, _ = s2_best
-        res2 = s2[2] - f2(s2[1], *p2)
-        
-        piecewise_residuals = np.concatenate([res1, res2])
-        
-        # Combined R^2 and RMSE for Piecewise
-        piecewise_pred = np.concatenate([f1(s1[1], *p1), f2(s2[1], *p2)])
-        combined_r2 = r2_score(temp, piecewise_pred)
-        combined_rmse = np.sqrt(mean_squared_error(temp, piecewise_pred))
-        
-        # Generate plots
-        plot_piecewise_comparison(s1, s2, s1_best, s2_best)
-        plot_residual_comparison(co2, global_residuals, piecewise_residuals, g_r2, combined_r2)
-        
-        # Final Summary
-        print("-" * 30)
-        print("ANALYSIS SUMMARY")
-        print(f"Global Linear R^2:    {g_r2:.4f}  | RMSE: {g_rmse:.4f}")
-        print(f"Piecewise Nonlinear R^2: {combined_r2:.4f}  | RMSE: {combined_rmse:.4f}")
-        print(f"R^2 Improvement:      {combined_r2 - g_r2:.4f}")
-        print(f"RMSE Reduction:       {g_rmse - combined_rmse:.4f}")
-        print("-" * 30)
+        plot_piecewise_comparison(s1, s2, s1_best_rt, s2_best_rt, "nonlinear_results/rational_exploration")
+        plot_residual_comparison(co2, global_residuals, p_res_rt, g_r2, p_r2_rt, "nonlinear_results/rational_exploration")
+
+        print("\n" + "="*40)
+        print("FINAL COMPARISON SUMMARY")
+        print(f"Global Linear R^2:      {g_r2:.4f} | RMSE: {g_rmse:.4f}")
+        print(f"Baseline Piecewise R^2: {p_r2_bl:.4f}")
+        print(f"Rational Piecewise R^2: {p_r2_rt:.4f}")
+        print(f"Total R^2 Improvement:  {p_r2_rt - g_r2:.4f}")
+        print("="*40)
 
     except Exception as e:
         print(f"Failed to execute nonlinear analysis: {e}")
