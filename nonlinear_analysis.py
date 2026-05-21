@@ -286,7 +286,7 @@ def plot_piecewise_comparison(
         s2_best: Best fit info for Segment 2.
         breakpoint_year: The year where segments split.
     """
-    os.makedirs("nonlinear_results", exist_ok=True)
+    os.makedirs("nonlinear_results/rational_exploration", exist_ok=True)
     
     plt.figure(figsize=(14, 8), dpi=300)
     
@@ -333,7 +333,7 @@ def plot_piecewise_comparison(
     plt.legend(fontsize=10, loc='upper left')
     plt.grid(True, linestyle=':', alpha=0.6)
     
-    output_path = "nonlinear_results/piecewise_fit_comparison.png"
+    output_path = "nonlinear_results/rational_exploration/piecewise_fit_comparison.png"
     plt.savefig(output_path)
     plt.close()
     print(f"Plot saved to {output_path}")
@@ -355,7 +355,7 @@ def plot_residual_comparison(
         global_r2: R^2 score of the global linear model.
         piecewise_r2: R^2 score of the piecewise nonlinear model.
     """
-    os.makedirs("nonlinear_results", exist_ok=True)
+    os.makedirs("nonlinear_results/rational_exploration", exist_ok=True)
     
     plt.figure(figsize=(14, 8), dpi=300)
     
@@ -373,7 +373,7 @@ def plot_residual_comparison(
     plt.legend(fontsize=10, loc='upper left')
     plt.grid(True, linestyle=':', alpha=0.6)
     
-    output_path = "nonlinear_results/residual_improvement.png"
+    output_path = "nonlinear_results/rational_exploration/residual_improvement.png"
     plt.savefig(output_path)
     plt.close()
     print(f"Residual plot saved to {output_path}")
