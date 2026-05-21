@@ -2,6 +2,7 @@ import numpy as np
 import os
 from scipy.optimize import curve_fit
 from sklearn.metrics import r2_score
+from typing import Callable, Optional
 
 def load_csv(file_path: str) -> np.ndarray:
     """
@@ -83,18 +84,56 @@ def segment_data(
     return (years[:idx+1], co2[:idx+1], temp[:idx+1]), (years[idx+1:], co2[idx+1:], temp[idx+1:])
 
 def linear_func(x: np.ndarray, a: float, b: float) -> np.ndarray:
-    """Linear model: y = ax + b"""
+    """
+    Linear model: y = ax + b
+    
+    Args:
+        x: Input data array.
+        a: Slope parameter.
+        b: Intercept parameter.
+        
+    Returns:
+        The calculated y values as a NumPy array.
+    """
     return a * x + b
 
 def quadratic_func(x: np.ndarray, a: float, b: float, c: float) -> np.ndarray:
-    """Quadratic model: y = ax^2 + bx + c"""
+    """
+    Quadratic model: y = ax^2 + bx + c
+    
+    Args:
+        x: Input data array.
+        a: Quadratic coefficient.
+        b: Linear coefficient.
+        c: Constant term.
+        
+    Returns:
+        The calculated y values as a NumPy array.
+    """
     return a * x**2 + b * x + c
 
 def exponential_func(x: np.ndarray, a: float, b: float, c: float, x0: float) -> np.ndarray:
-    """Exponential model: y = a * e^(b * (x - x0)) + c"""
+    """
+    Exponential model: y = a * e^(b * (x - x0)) + c
+    
+    Args:
+        x: Input data array.
+        a: Amplitude coefficient.
+        b: Growth rate coefficient.
+        c: Vertical offset.
+        x0: Horizontal shift.
+        
+    Returns:
+        The calculated y values as a NumPy array.
+    """
     return a * np.exp(b * (x - x0)) + c
 
-def fit_models(x_data: np.ndarray, y_data: np.ndarray, model_name: str) -> tuple:
+
+def fit_models(
+    x_data: np.ndarray, 
+    y_data: np.ndarray, 
+    model_name: str
+) -> tuple[Optional[Callable], Optional[np.ndarray], float, Optional[np.ndarray]]:
     """
     Fits a specified model to the data and calculates R^2.
     
@@ -132,8 +171,18 @@ def fit_models(x_data: np.ndarray, y_data: np.ndarray, model_name: str) -> tuple
             y_pred = func(x_data, *popt)
             r2 = r2_score(y_data, y_pred)
             
+    except RuntimeError as e:
+        print(f"Error: Fit for {model_name} failed due to convergence issues: {e}")
+        popt = None
+        y_pred = None
+        r2 = -np.inf
+    except ValueError as e:
+        print(f"Error: Fit for {model_name} failed due to invalid data: {e}")
+        popt = None
+        y_pred = None
+        r2 = -np.inf
     except Exception as e:
-        print(f"Warning: Fit for {model_name} failed: {e}")
+        print(f"Warning: Fit for {model_name} failed unexpectedly: {e}")
         popt = None
         y_pred = None
         r2 = -np.inf
