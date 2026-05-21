@@ -129,6 +129,26 @@ def exponential_func(x: np.ndarray, a: float, b: float, c: float, x0: float) -> 
     """
     return a * np.exp(b * (x - x0)) + c
 
+def rational_1_1(x: np.ndarray, p1: float, p2: float, q1: float) -> np.ndarray:
+    """
+    Rational model (1,1): y = (p1*x + p2) / (q1*x + 1)
+    """
+    return (p1 * x + p2) / (q1 * x + 1)
+
+def rational_2_1(x: np.ndarray, p1: float, p2: float, p3: float, q1: float) -> np.ndarray:
+    """
+    Rational model (2,1): y = (p1*x^2 + p2*x + p3) / (q1*x + 1)
+    """
+    return (p1 * x**2 + p2 * x + p3) / (q1 * x + 1)
+
+def check_rational_stability(q1: float, x_data: np.ndarray) -> bool:
+    """
+    Checks if the rational function is stable (no poles in the range of x_data).
+    Denominator q1*x + 1 must have the same sign for all x in x_data.
+    """
+    denominators = q1 * x_data + 1
+    return np.all(denominators > 0) or np.all(denominators < 0)
+
 
 def fit_models(
     x_data: np.ndarray, 
@@ -168,6 +188,16 @@ def fit_models(
                 p0=[1, 0.01, -3, x0_init],
                 bounds=([0, 0, -np.inf, x_data.min()], [np.inf, np.inf, np.inf, x_data.max()])
             )
+        elif model_name == "rational_1_1":
+            func = rational_1_1
+            popt, _ = curve_fit(func, x_data, y_data, p0=[0.01, -3, 0.001])
+            if popt is not None and not check_rational_stability(popt[2], x_data):
+                popt = None
+        elif model_name == "rational_2_1":
+            func = rational_2_1
+            popt, _ = curve_fit(func, x_data, y_data, p0=[0.0001, 0.01, -3, 0.001])
+            if popt is not None and not check_rational_stability(popt[3], x_data):
+                popt = None
         
         if popt is not None:
             y_pred = func(x_data, *popt)
@@ -212,7 +242,7 @@ def get_best_fit(x_data: np.ndarray, y_data: np.ndarray) -> tuple[str, Callable,
     best_r2 = -np.inf
     best_rmse = np.inf
     
-    for model_name in ["linear", "quadratic", "exponential"]:
+    for model_name in ["linear", "quadratic", "exponential", "rational_1_1", "rational_2_1"]:
         func, popt, r2, _, rmse = fit_models(x_data, y_data, model_name)
         if r2 > best_r2:
             best_r2 = r2
@@ -233,6 +263,10 @@ def generate_equation_string(model_name: str, popt: np.ndarray) -> str:
         return f"$y = {popt[0]:.4f}x^2 {'+' if popt[1] >= 0 else '-'} {abs(popt[1]):.4f}x {'+' if popt[2] >= 0 else '-'} {abs(popt[2]):.4f}$"
     elif model_name == "exponential":
         return f"$y = {popt[0]:.4f}e^{{{popt[1]:.4f}(x - {popt[3]:.4f})}} {'+' if popt[2] >= 0 else '-'} {abs(popt[2]):.4f}$"
+    elif model_name == "rational_1_1":
+        return f"$y = ({popt[0]:.4f}x {'+' if popt[1] >= 0 else '-'} {abs(popt[1]):.4f}) / ({popt[2]:.4f}x + 1)$"
+    elif model_name == "rational_2_1":
+        return f"$y = ({popt[0]:.4f}x^2 {'+' if popt[1] >= 0 else '-'} {abs(popt[1]):.4f}x {'+' if popt[2] >= 0 else '-'} {abs(popt[2]):.4f}) / ({popt[3]:.4f}x + 1)$"
     return ""
 
 def plot_piecewise_comparison(
@@ -359,6 +393,16 @@ if __name__ == "__main__":
         global_residuals = temp - g_pred
         
         # 2. Piecewise Nonlinear Model
+        print("\nTesting Models for Segment 1:")
+        for m in ["linear", "quadratic", "exponential", "rational_1_1", "rational_2_1"]:
+            _, _, r2, _, _ = fit_models(s1[1], s1[2], m)
+            print(f"  {m:15}: R^2 = {r2:.4f}")
+
+        print("\nTesting Models for Segment 2:")
+        for m in ["linear", "quadratic", "exponential", "rational_1_1", "rational_2_1"]:
+            _, _, r2, _, _ = fit_models(s2[1], s2[2], m)
+            print(f"  {m:15}: R^2 = {r2:.4f}")
+
         # Identify best fits
         s1_best = get_best_fit(s1[1], s1[2])
         s2_best = get_best_fit(s2[1], s2[2])
