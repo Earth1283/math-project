@@ -5,6 +5,8 @@ from scipy.optimize import curve_fit
 from sklearn.metrics import r2_score, mean_squared_error
 from typing import Callable, Optional
 
+OUTPUT_DIR = "nonlinear_results/rational_exploration"
+
 def load_csv(file_path: str) -> np.ndarray:
     """
     Loads a CSV file into a NumPy array, skipping the header.
@@ -132,12 +134,31 @@ def exponential_func(x: np.ndarray, a: float, b: float, c: float, x0: float) -> 
 def rational_1_1(x: np.ndarray, p1: float, p2: float, q1: float) -> np.ndarray:
     """
     Rational model (1,1): y = (p1*x + p2) / (q1*x + 1)
+    
+    Args:
+        x: Input data array.
+        p1: Polynomial coefficient in numerator.
+        p2: Constant term in numerator.
+        q1: Polynomial coefficient in denominator.
+        
+    Returns:
+        The calculated y values as a NumPy array.
     """
     return (p1 * x + p2) / (q1 * x + 1)
 
 def rational_2_1(x: np.ndarray, p1: float, p2: float, p3: float, q1: float) -> np.ndarray:
     """
     Rational model (2,1): y = (p1*x^2 + p2*x + p3) / (q1*x + 1)
+    
+    Args:
+        x: Input data array.
+        p1: Quadratic coefficient in numerator.
+        p2: Linear coefficient in numerator.
+        p3: Constant term in numerator.
+        q1: Polynomial coefficient in denominator.
+        
+    Returns:
+        The calculated y values as a NumPy array.
     """
     return (p1 * x**2 + p2 * x + p3) / (q1 * x + 1)
 
@@ -145,6 +166,13 @@ def check_rational_stability(q1: float, x_data: np.ndarray) -> bool:
     """
     Checks if the rational function is stable (no poles in the range of x_data).
     Denominator q1*x + 1 must have the same sign for all x in x_data.
+    
+    Args:
+        q1: Polynomial coefficient in denominator.
+        x_data: Input data array to check for stability.
+        
+    Returns:
+        True if the function is stable over x_data, False otherwise.
     """
     denominators = q1 * x_data + 1
     return np.all(denominators > 0) or np.all(denominators < 0)
@@ -286,7 +314,7 @@ def plot_piecewise_comparison(
         s2_best: Best fit info for Segment 2.
         breakpoint_year: The year where segments split.
     """
-    os.makedirs("nonlinear_results/rational_exploration", exist_ok=True)
+    os.makedirs(OUTPUT_DIR, exist_ok=True)
     
     plt.figure(figsize=(14, 8), dpi=300)
     
@@ -314,26 +342,27 @@ def plot_piecewise_comparison(
     eq1 = generate_equation_string(name1, popt1)
     eq2 = generate_equation_string(name2, popt2)
     
-    plt.text(0.05, 0.95, f"Seg 1: {eq1}", transform=plt.gca().transAxes, 
-             fontsize=10, color='blue', verticalalignment='top',
-             bbox=dict(boxstyle='round', facecolor='white', alpha=0.8))
+    # Position equations prominently but away from the legend
+    plt.text(0.05, 0.95, f"Segment 1 Fit:\n{eq1}", transform=plt.gca().transAxes, 
+             fontsize=11, color='blue', verticalalignment='top', fontweight='bold',
+             bbox=dict(boxstyle='round', facecolor='white', alpha=0.9))
     
-    plt.text(0.05, 0.88, f"Seg 2: {eq2}", transform=plt.gca().transAxes, 
-             fontsize=10, color='red', verticalalignment='top',
-             bbox=dict(boxstyle='round', facecolor='white', alpha=0.8))
+    plt.text(0.05, 0.82, f"Segment 2 Fit:\n{eq2}", transform=plt.gca().transAxes, 
+             fontsize=11, color='red', verticalalignment='top', fontweight='bold',
+             bbox=dict(boxstyle='round', facecolor='white', alpha=0.9))
     
     # Vertical line for breakpoint
     breakpoint_co2 = co2_1[-1]
-    plt.axvline(breakpoint_co2, color='gray', linestyle='--', alpha=0.7, label=f'Breakpoint ({breakpoint_year})')
+    plt.axvline(breakpoint_co2, color='purple', linestyle='--', alpha=0.7, label=f'Breakpoint ({breakpoint_year})')
     
     # HD Labels and Formatting
-    plt.xlabel('CO2 Concentration (ppm)', fontsize=12)
-    plt.ylabel('Surface Air Temperature Change (°C)', fontsize=12)
-    plt.title('Piecewise Nonlinear Fit Comparison: CO2 vs Temperature', fontsize=14, fontweight='bold')
-    plt.legend(fontsize=10, loc='upper left')
+    plt.xlabel('CO2 Concentration (ppm)', fontsize=14)
+    plt.ylabel('Surface Air Temperature Change (°C)', fontsize=14)
+    plt.title('Piecewise Nonlinear Fit Comparison: CO2 vs Temperature', fontsize=16, fontweight='bold')
+    plt.legend(fontsize=10, loc='lower right', framealpha=0.9)
     plt.grid(True, linestyle=':', alpha=0.6)
     
-    output_path = "nonlinear_results/rational_exploration/piecewise_fit_comparison.png"
+    output_path = os.path.join(OUTPUT_DIR, "piecewise_fit_comparison.png")
     plt.savefig(output_path)
     plt.close()
     print(f"Plot saved to {output_path}")
@@ -355,7 +384,7 @@ def plot_residual_comparison(
         global_r2: R^2 score of the global linear model.
         piecewise_r2: R^2 score of the piecewise nonlinear model.
     """
-    os.makedirs("nonlinear_results/rational_exploration", exist_ok=True)
+    os.makedirs(OUTPUT_DIR, exist_ok=True)
     
     plt.figure(figsize=(14, 8), dpi=300)
     
@@ -373,12 +402,13 @@ def plot_residual_comparison(
     plt.legend(fontsize=10, loc='upper left')
     plt.grid(True, linestyle=':', alpha=0.6)
     
-    output_path = "nonlinear_results/rational_exploration/residual_improvement.png"
+    output_path = os.path.join(OUTPUT_DIR, "residual_improvement.png")
     plt.savefig(output_path)
     plt.close()
     print(f"Residual plot saved to {output_path}")
 
-if __name__ == "__main__":
+def main():
+    """Main execution function for nonlinear analysis."""
     co2_path = 'data/co2-ppm.csv'
     temp_path = 'data/surface-air-temp-change.csv'
     
@@ -407,7 +437,7 @@ if __name__ == "__main__":
         s1_best = get_best_fit(s1[1], s1[2])
         s2_best = get_best_fit(s2[1], s2[2])
         
-        print(f"Segment 1 Best Fit: {s1_best[0].capitalize()} (R^2 = {s1_best[3]:.4f}, RMSE = {s1_best[4]:.4f})")
+        print(f"\nSegment 1 Best Fit: {s1_best[0].capitalize()} (R^2 = {s1_best[3]:.4f}, RMSE = {s1_best[4]:.4f})")
         print(f"Segment 2 Best Fit: {s2_best[0].capitalize()} (R^2 = {s2_best[3]:.4f}, RMSE = {s2_best[4]:.4f})")
         
         # Calculate Piecewise Residuals
@@ -442,3 +472,6 @@ if __name__ == "__main__":
     except Exception as e:
         print(f"Failed to execute nonlinear analysis: {e}")
         raise
+
+if __name__ == "__main__":
+    main()
