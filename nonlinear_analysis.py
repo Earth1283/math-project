@@ -1,5 +1,7 @@
 import numpy as np
 import os
+from scipy.optimize import curve_fit
+from sklearn.metrics import r2_score
 
 def load_csv(file_path: str) -> np.ndarray:
     """
@@ -80,6 +82,64 @@ def segment_data(
     idx = np.where(years <= breakpoint_year)[0][-1]
     return (years[:idx+1], co2[:idx+1], temp[:idx+1]), (years[idx+1:], co2[idx+1:], temp[idx+1:])
 
+def linear_func(x: np.ndarray, a: float, b: float) -> np.ndarray:
+    """Linear model: y = ax + b"""
+    return a * x + b
+
+def quadratic_func(x: np.ndarray, a: float, b: float, c: float) -> np.ndarray:
+    """Quadratic model: y = ax^2 + bx + c"""
+    return a * x**2 + b * x + c
+
+def exponential_func(x: np.ndarray, a: float, b: float, c: float, x0: float) -> np.ndarray:
+    """Exponential model: y = a * e^(b * (x - x0)) + c"""
+    return a * np.exp(b * (x - x0)) + c
+
+def fit_models(x_data: np.ndarray, y_data: np.ndarray, model_name: str) -> tuple:
+    """
+    Fits a specified model to the data and calculates R^2.
+    
+    Args:
+        x_data: Independent variable data.
+        y_data: Dependent variable data.
+        model_name: Name of the model to fit ('linear', 'quadratic', 'exponential').
+        
+    Returns:
+        A tuple (func, popt, r2, y_pred). If fit fails, popt and y_pred are None, and r2 is -inf.
+    """
+    popt = None
+    y_pred = None
+    r2 = -np.inf
+    func = None
+
+    try:
+        if model_name == "linear":
+            func = linear_func
+            popt, _ = curve_fit(func, x_data, y_data, p0=[0.01, -3])
+        elif model_name == "quadratic":
+            func = quadratic_func
+            popt, _ = curve_fit(func, x_data, y_data, p0=[0.0001, 0.01, -3])
+        elif model_name == "exponential":
+            func = exponential_func
+            x0_init = x_data.min()
+            # Bounds: a > 0, b > 0
+            popt, _ = curve_fit(
+                func, x_data, y_data, 
+                p0=[1, 0.01, -3, x0_init],
+                bounds=([0, 0, -np.inf, x_data.min()], [np.inf, np.inf, np.inf, x_data.max()])
+            )
+        
+        if popt is not None:
+            y_pred = func(x_data, *popt)
+            r2 = r2_score(y_data, y_pred)
+            
+    except Exception as e:
+        print(f"Warning: Fit for {model_name} failed: {e}")
+        popt = None
+        y_pred = None
+        r2 = -np.inf
+
+    return func, popt, r2, y_pred
+
 if __name__ == "__main__":
     co2_path = 'data/co2-ppm.csv'
     temp_path = 'data/surface-air-temp-change.csv'
@@ -91,5 +151,17 @@ if __name__ == "__main__":
         print("Data segmented successfully.")
         print(f"Segment 1: {int(s1[0][0])}-{int(s1[0][-1])} ({len(s1[0])} samples)")
         print(f"Segment 2: {int(s2[0][0])}-{int(s2[0][-1])} ({len(s2[0])} samples)")
+
+        for i, segment in enumerate([s1, s2], 1):
+            print(f"\nFitting models for Segment {i}:")
+            x_seg, y_seg = segment[1], segment[2]
+            for model_name in ["linear", "quadratic", "exponential"]:
+                _, popt, r2, _ = fit_models(x_seg, y_seg, model_name)
+                if popt is not None:
+                    print(f"  {model_name.capitalize()}: R^2 = {r2:.4f}")
+                else:
+                    print(f"  {model_name.capitalize()}: Fit Failed")
+
     except Exception as e:
         print(f"Failed to execute nonlinear analysis: {e}")
+        raise
