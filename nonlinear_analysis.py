@@ -2,7 +2,7 @@ import numpy as np
 import os
 import matplotlib.pyplot as plt
 from scipy.optimize import curve_fit
-from sklearn.metrics import r2_score
+from sklearn.metrics import r2_score, mean_squared_error
 from typing import Callable, Optional
 
 def load_csv(file_path: str) -> np.ndarray:
@@ -134,9 +134,9 @@ def fit_models(
     x_data: np.ndarray, 
     y_data: np.ndarray, 
     model_name: str
-) -> tuple[Optional[Callable], Optional[np.ndarray], float, Optional[np.ndarray]]:
+) -> tuple[Optional[Callable], Optional[np.ndarray], float, Optional[np.ndarray], float]:
     """
-    Fits a specified model to the data and calculates R^2.
+    Fits a specified model to the data and calculates R^2 and RMSE.
     
     Args:
         x_data: Independent variable data.
@@ -144,11 +144,12 @@ def fit_models(
         model_name: Name of the model to fit ('linear', 'quadratic', 'exponential').
         
     Returns:
-        A tuple (func, popt, r2, y_pred). If fit fails, popt and y_pred are None, and r2 is -inf.
+        A tuple (func, popt, r2, y_pred, rmse). If fit fails, popt and y_pred are None, r2 is -inf, and rmse is inf.
     """
     popt = None
     y_pred = None
     r2 = -np.inf
+    rmse = np.inf
     func = None
 
     try:
@@ -171,26 +172,30 @@ def fit_models(
         if popt is not None:
             y_pred = func(x_data, *popt)
             r2 = r2_score(y_data, y_pred)
+            rmse = np.sqrt(mean_squared_error(y_data, y_pred))
             
     except RuntimeError as e:
         print(f"Error: Fit for {model_name} failed due to convergence issues: {e}")
         popt = None
         y_pred = None
         r2 = -np.inf
+        rmse = np.inf
     except ValueError as e:
         print(f"Error: Fit for {model_name} failed due to invalid data: {e}")
         popt = None
         y_pred = None
         r2 = -np.inf
+        rmse = np.inf
     except Exception as e:
         print(f"Warning: Fit for {model_name} failed unexpectedly: {e}")
         popt = None
         y_pred = None
         r2 = -np.inf
+        rmse = np.inf
 
-    return func, popt, r2, y_pred
+    return func, popt, r2, y_pred, rmse
 
-def get_best_fit(x_data: np.ndarray, y_data: np.ndarray) -> tuple[str, Callable, np.ndarray, float]:
+def get_best_fit(x_data: np.ndarray, y_data: np.ndarray) -> tuple[str, Callable, np.ndarray, float, float]:
     """
     Identifies the model with the highest R^2 for the given data.
     
@@ -199,28 +204,42 @@ def get_best_fit(x_data: np.ndarray, y_data: np.ndarray) -> tuple[str, Callable,
         y_data: Dependent variable data.
         
     Returns:
-        A tuple (model_name, function, parameters, r2).
+        A tuple (model_name, function, parameters, r2, rmse).
     """
     best_model = None
     best_func = None
     best_popt = None
     best_r2 = -np.inf
+    best_rmse = np.inf
     
     for model_name in ["linear", "quadratic", "exponential"]:
-        func, popt, r2, _ = fit_models(x_data, y_data, model_name)
+        func, popt, r2, _, rmse = fit_models(x_data, y_data, model_name)
         if r2 > best_r2:
             best_r2 = r2
             best_model = model_name
             best_func = func
             best_popt = popt
+            best_rmse = rmse
             
-    return best_model, best_func, best_popt, best_r2
+    return best_model, best_func, best_popt, best_r2, best_rmse
+
+def generate_equation_string(model_name: str, popt: np.ndarray) -> str:
+    """
+    Generates a LaTeX-formatted equation string for the fitted model.
+    """
+    if model_name == "linear":
+        return f"$y = {popt[0]:.4f}x {'+' if popt[1] >= 0 else '-'} {abs(popt[1]):.4f}$"
+    elif model_name == "quadratic":
+        return f"$y = {popt[0]:.4f}x^2 {'+' if popt[1] >= 0 else '-'} {abs(popt[1]):.4f}x {'+' if popt[2] >= 0 else '-'} {abs(popt[2]):.4f}$"
+    elif model_name == "exponential":
+        return f"$y = {popt[0]:.4f}e^{{{popt[1]:.4f}(x - {popt[3]:.4f})}} {'+' if popt[2] >= 0 else '-'} {abs(popt[2]):.4f}$"
+    return ""
 
 def plot_piecewise_comparison(
     s1_data: tuple[np.ndarray, np.ndarray, np.ndarray],
     s2_data: tuple[np.ndarray, np.ndarray, np.ndarray],
-    s1_best: tuple[str, Callable, np.ndarray, float],
-    s2_best: tuple[str, Callable, np.ndarray, float],
+    s1_best: tuple[str, Callable, np.ndarray, float, float],
+    s2_best: tuple[str, Callable, np.ndarray, float, float],
     breakpoint_year: int = 1990
 ):
     """
@@ -246,16 +265,28 @@ def plot_piecewise_comparison(
     plt.scatter(co2_2, temp_2, color='salmon', alpha=0.5, label='Actual Data (Seg 2)')
     
     # Plot Segment 1 Best Fit
-    name1, func1, popt1, r2_1 = s1_best
+    name1, func1, popt1, r2_1, rmse1 = s1_best
     x_range1 = np.linspace(co2_1.min(), co2_1.max(), 100)
     plt.plot(x_range1, func1(x_range1, *popt1), color='blue', linewidth=2, 
-             label=f'Seg 1: {name1.capitalize()} (R²={r2_1:.4f})')
+             label=f'Seg 1: {name1.capitalize()} (R²={r2_1:.4f}, RMSE={rmse1:.4f})')
     
     # Plot Segment 2 Best Fit
-    name2, func2, popt2, r2_2 = s2_best
+    name2, func2, popt2, r2_2, rmse2 = s2_best
     x_range2 = np.linspace(co2_2.min(), co2_2.max(), 100)
     plt.plot(x_range2, func2(x_range2, *popt2), color='red', linewidth=2, 
-             label=f'Seg 2: {name2.capitalize()} (R²={r2_2:.4f})')
+             label=f'Seg 2: {name2.capitalize()} (R²={r2_2:.4f}, RMSE={rmse2:.4f})')
+    
+    # Add Equation Annotations
+    eq1 = generate_equation_string(name1, popt1)
+    eq2 = generate_equation_string(name2, popt2)
+    
+    plt.text(0.05, 0.95, f"Seg 1: {eq1}", transform=plt.gca().transAxes, 
+             fontsize=10, color='blue', verticalalignment='top',
+             bbox=dict(boxstyle='round', facecolor='white', alpha=0.8))
+    
+    plt.text(0.05, 0.88, f"Seg 2: {eq2}", transform=plt.gca().transAxes, 
+             fontsize=10, color='red', verticalalignment='top',
+             bbox=dict(boxstyle='round', facecolor='white', alpha=0.8))
     
     # Vertical line for breakpoint
     breakpoint_co2 = co2_1[-1]
@@ -324,7 +355,7 @@ if __name__ == "__main__":
         print("Data segmented successfully.")
         
         # 1. Global Linear Model
-        _, g_popt, g_r2, g_pred = fit_models(co2, temp, "linear")
+        _, g_popt, g_r2, g_pred, g_rmse = fit_models(co2, temp, "linear")
         global_residuals = temp - g_pred
         
         # 2. Piecewise Nonlinear Model
@@ -332,23 +363,24 @@ if __name__ == "__main__":
         s1_best = get_best_fit(s1[1], s1[2])
         s2_best = get_best_fit(s2[1], s2[2])
         
-        print(f"Segment 1 Best Fit: {s1_best[0].capitalize()} (R^2 = {s1_best[3]:.4f})")
-        print(f"Segment 2 Best Fit: {s2_best[0].capitalize()} (R^2 = {s2_best[3]:.4f})")
+        print(f"Segment 1 Best Fit: {s1_best[0].capitalize()} (R^2 = {s1_best[3]:.4f}, RMSE = {s1_best[4]:.4f})")
+        print(f"Segment 2 Best Fit: {s2_best[0].capitalize()} (R^2 = {s2_best[3]:.4f}, RMSE = {s2_best[4]:.4f})")
         
         # Calculate Piecewise Residuals
         # Seg 1 residuals
-        _, f1, p1, _ = s1_best
+        _, f1, p1, _, _ = s1_best
         res1 = s1[2] - f1(s1[1], *p1)
         
         # Seg 2 residuals
-        _, f2, p2, _ = s2_best
+        _, f2, p2, _, _ = s2_best
         res2 = s2[2] - f2(s2[1], *p2)
         
         piecewise_residuals = np.concatenate([res1, res2])
         
-        # Combined R^2 for Piecewise
+        # Combined R^2 and RMSE for Piecewise
         piecewise_pred = np.concatenate([f1(s1[1], *p1), f2(s2[1], *p2)])
         combined_r2 = r2_score(temp, piecewise_pred)
+        combined_rmse = np.sqrt(mean_squared_error(temp, piecewise_pred))
         
         # Generate plots
         plot_piecewise_comparison(s1, s2, s1_best, s2_best)
@@ -357,9 +389,10 @@ if __name__ == "__main__":
         # Final Summary
         print("-" * 30)
         print("ANALYSIS SUMMARY")
-        print(f"Global Linear R^2:    {g_r2:.4f}")
-        print(f"Piecewise Nonlinear R^2: {combined_r2:.4f}")
-        print(f"Total Improvement:    {combined_r2 - g_r2:.4f}")
+        print(f"Global Linear R^2:    {g_r2:.4f}  | RMSE: {g_rmse:.4f}")
+        print(f"Piecewise Nonlinear R^2: {combined_r2:.4f}  | RMSE: {combined_rmse:.4f}")
+        print(f"R^2 Improvement:      {combined_r2 - g_r2:.4f}")
+        print(f"RMSE Reduction:       {g_rmse - combined_rmse:.4f}")
         print("-" * 30)
 
     except Exception as e:
