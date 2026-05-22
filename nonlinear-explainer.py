@@ -49,3 +49,23 @@ class NonlinearOdyssey(Scene):
         self.play(FadeIn(lin_comment))
         self.wait(2)
         self.play(FadeOut(VGroup(line_lin, lin_label, lin_comment)))
+
+        # 3. Scene 2: Attempting Global Rational
+        rat_label = Text("Attempt 1: Global Rational Fit", font_size=24, color=RED).to_corner(UL).shift(DOWN*0.5)
+        rat_comment = Text("Equation is having an existential crisis...", font_size=20, color=RED, slant=ITALIC).next_to(rat_label, DOWN, aligned_edge=LEFT)
+        emoji = Text("😵‍💫", font_size=40).next_to(rat_comment, RIGHT) # 😵‍💫
+
+        # Create a "forced" looking rational curve that fits poorly
+        line_fail = axes.plot(lambda x: (0.5 * (x-310)**2 - 10*(x-310) + 5) / (2*(x-310) + 1) - 0.2, x_range=[315, 415], color=RED)
+
+        self.play(Write(rat_label))
+        self.play(Create(line_fail), run_time=2)
+        self.play(Write(rat_comment), FadeIn(emoji))
+        
+        # Vibration
+        self.play(line_fail.animate.shift(UP*0.1), run_time=0.1)
+        self.play(line_fail.animate.shift(DOWN*0.1), run_time=0.1)
+        self.play(line_fail.animate.shift(UP*0.1), run_time=0.1)
+        
+        self.wait(2)
+        self.play(FadeOut(VGroup(rat_label, rat_comment, emoji, line_fail)))
