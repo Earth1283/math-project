@@ -62,11 +62,12 @@ class CO2PredictionExplainer(Scene):
         title_co2 = get_co2_label(font_size=36)
         title_rest = Text(" Future", font_size=36)
         title = VGroup(Text("Forecasting the ", font_size=36), title_co2, title_rest).arrange(RIGHT, buff=0.1).to_edge(UP)
+        
+        # Plot Historical Data - Redrawable to stay synced with axes
+        dots = always_redraw(lambda: VGroup(*[Dot(axes.c2p(x, y), color=GRAY_C, radius=0.03, fill_opacity=0.4) for x, y in zip(years_hist, co2_hist)]))
+        
         self.play(Write(title), Create(axes), FadeIn(labels))
-
-        # Plot Historical Data
-        dots = VGroup(*[Dot(axes.c2p(x, y), color=GRAY_C, radius=0.03, fill_opacity=0.4) for x, y in zip(years_hist, co2_hist)])
-        self.play(FadeIn(dots, lag_ratio=0.01))
+        self.play(FadeIn(dots))
         self.wait(1)
 
         # 3. Predict to 2050
@@ -134,17 +135,15 @@ class CO2PredictionExplainer(Scene):
             tips=False
         ).shift(DOWN * 0.5)
 
-        # Threshold Line
-        threshold_line = DashedLine(
-            new_axes.c2p(1950, 685), new_axes.c2p(2220, 685),
+        # Threshold Line - Redrawable
+        threshold_line = always_redraw(lambda: DashedLine(
+            axes.c2p(1950, 685), axes.c2p(2220, 685),
             color=RED_C, stroke_width=2
-        )
-        threshold_label = Text("Threshold: 685 ppm", font_size=18, color=RED_C).next_to(threshold_line, UP, buff=0.1).to_edge(LEFT, buff=1.5)
+        ))
+        threshold_label = always_redraw(lambda: Text("Threshold: 685 ppm", font_size=18, color=RED_C).next_to(threshold_line, UP, buff=0.1).to_edge(LEFT, buff=1.5))
 
         self.play(
             Transform(axes, new_axes),
-            # Move dots to new axes
-            *[d.animate.move_to(new_axes.c2p(years_hist[i], co2_hist[i])) for i, d in enumerate(dots)],
             Write(threshold_line), Write(threshold_label),
             run_time=2
         )
@@ -157,8 +156,9 @@ class CO2PredictionExplainer(Scene):
         # Mark individual crossing points
         for key, yr in target_years.items():
             color = BLUE_C if key == "lin" else (ORANGE_C if key == "exp" else GREEN_C)
-            dot = Dot(new_axes.c2p(yr, 685), color=color)
-            label = Text(format_date(yr), font_size=16, color=color).next_to(dot, UP if yr < 2100 else LEFT, buff=0.2)
-            self.play(Create(dot), Write(label))
+            # Use closures carefully in lambdas
+            dot = always_redraw(lambda yr=yr, color=color: Dot(axes.c2p(yr, 685), color=color))
+            lbl = always_redraw(lambda yr=yr, color=color, dot=dot: Text(format_date(yr), font_size=16, color=color).next_to(dot, UP if yr < 2100 else LEFT, buff=0.2))
+            self.play(Create(dot), Write(lbl))
 
         self.wait(5)
