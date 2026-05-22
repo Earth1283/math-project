@@ -94,12 +94,17 @@ def main():
         (year_685_rat, GREEN, "Piecewise Rational")
     ]
     
-    for yr, color, name in crossings:
+    # Sort by year to handle overlapping labels
+    crossings.sort()
+    
+    offsets = [15, 45, 15] # Alternate offsets to avoid stacking
+    for i, (yr, color, name) in enumerate(crossings):
         if yr:
-            plt.plot(yr, 685, 'o', color=color, markersize=10, markeredgecolor='white')
-            plt.annotate(f"{yr:.1f}", (yr, 685), textcoords="offset points", xytext=(0,15),
+            plt.plot(yr, 685, 'o', color=color, markersize=10, markeredgecolor='white', zorder=5)
+            plt.annotate(f"{yr:.1f}", (yr, 685), textcoords="offset points", xytext=(0, offsets[i]),
                          ha='center', fontsize=12, fontweight='bold', color=color,
-                         bbox=dict(boxstyle='round,pad=0.3', fc='white', ec=color, alpha=0.9))
+                         bbox=dict(boxstyle='round,pad=0.3', fc='white', ec=color, alpha=0.9),
+                         arrowprops=dict(arrowstyle="-", color=color, alpha=0.5))
             plt.axvline(yr, color=color, linestyle=':', alpha=0.3)
 
     plt.title('Timeline to 685 ppm CO$_2$: Model Comparison', fontsize=18, fontweight='bold')
@@ -111,7 +116,7 @@ def main():
     plt.xlim(1950, 2220)
     plt.ylim(300, 750)
     
-    output_path = "co2_threshold_685ppm.png"
+    output_path = os.path.join("co2_projections", "co2_threshold_685ppm.png")
     plt.savefig(output_path)
     print(f"Threshold visualization saved to {output_path}")
     print(f"Years reaching 685 ppm:")

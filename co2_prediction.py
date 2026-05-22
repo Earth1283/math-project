@@ -164,7 +164,7 @@ def main():
     plt.xlim(1955, 2060)
     plt.ylim(300, 750)
     
-    output_path = "co2_projections_2050.png"
+    output_path = os.path.join("co2_projections", "co2_projections_2050.png")
     plt.savefig(output_path)
     print(f"\nPlot saved to {output_path}")
 
