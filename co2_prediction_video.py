@@ -148,7 +148,7 @@ class CO2PredictionExplainer(Scene):
             new_axes.c2p(1950, 685), new_axes.c2p(2220, 685),
             color=RED_C, stroke_width=2
         )
-        threshold_label = Text("Threshold: 685 ppm", font_size=18, color=RED_C).next_to(threshold_line, UP, buff=0.1).to_edge(LEFT, buff=1.5)
+        threshold_label = Text("Threshold: 685 ppm", font_size=18, color=RED_C).next_to(threshold_line, UP, buff=0.1).to_edge(RIGHT, buff=1.0)
 
         self.play(
             ReplacementTransform(axes, new_axes),
@@ -171,12 +171,15 @@ class CO2PredictionExplainer(Scene):
         self.play(time_tracker.animate.set_value(max_target), run_time=8, rate_func=linear)
         self.wait(1)
 
-        # Mark individual crossing points
-        for key, yr in target_years.items():
+        # Mark individual crossing points - STAGGERED to avoid clipping
+        stagger = [UP, DOWN, UP]
+        for i, (key, yr) in enumerate(target_years.items()):
             color = BLUE_C if key == "lin" else (ORANGE_C if key == "exp" else GREEN_C)
+            direction = stagger[i % 3]
             # Use closures carefully in lambdas
             dot = always_redraw(lambda yr=yr, color=color: Dot(axes.c2p(yr, 685), color=color))
-            lbl = always_redraw(lambda yr=yr, color=color, dot=dot: Text(format_date(yr), font_size=16, color=color).next_to(dot, UP if yr < 2100 else LEFT, buff=0.2))
+            lbl = always_redraw(lambda yr=yr, color=color, dot=dot, direction=direction: 
+                                Text(format_date(yr), font_size=16, color=color).next_to(dot, direction, buff=0.3))
             self.play(Create(dot), Write(lbl))
 
         self.wait(5)
