@@ -80,3 +80,16 @@ class NonlinearOdyssey(Scene):
         
         self.play(Create(bp_line), Write(bp_label))
         self.wait(1)
+
+        # 5. Scene 4: The Win
+        win_label = Text("Now we're cooking with science! \ud83d\udd25", font_size=32, color=GREEN).to_corner(UL).shift(DOWN*0.5)
+        
+        s1_line = axes.plot(lambda x: 0.00022 * x**2 - 0.1468 * x + 22.8051, x_range=[315.98, 354.35], color=BLUE)
+        s2_line = axes.plot(lambda x: 2.33e-7 * np.exp(0.0470 * (x - 355.62)) - 0.2081, x_range=[355.62, 414.24], color=RED)
+
+        self.play(FadeIn(win_label))
+        self.play(Create(s1_line), Create(s2_line), run_time=3)
+        
+        r2_text = Text(f"Piecewise R\u00b2 = 0.9291", font_size=36, color=GREEN).to_edge(RIGHT, buff=1.0).shift(UP*1.5)
+        self.play(Write(r2_text))
+        self.wait(5)
