@@ -437,10 +437,10 @@ def main():
 
         print("\n" + "="*40)
         print("FINAL COMPARISON SUMMARY")
-        print(f"Global Linear R^2:      {g_r2:.4f} | RMSE: {g_rmse:.4f}")
-        print(f"Baseline Piecewise R^2: {p_r2_bl:.4f}")
-        print(f"Rational Piecewise R^2: {p_r2_rt:.4f}")
-        print(f"Total R^2 Improvement:  {p_r2_rt - g_r2:.4f}")
+        print(f"Global Linear R²:      {g_r2:.4f} | RMSE: {g_rmse:.4f}")
+        print(f"Baseline Piecewise R²: {p_r2_bl:.4f}")
+        print(f"Rational Piecewise R²: {p_r2_rt:.4f}")
+        print(f"Total R² Improvement:  {p_r2_rt - g_r2:.4f}")
         print("="*40)
 
     except Exception as e:

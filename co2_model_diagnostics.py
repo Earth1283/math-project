@@ -44,8 +44,8 @@ def main():
     _, p_norm = shapiro(train_residuals)
     
     print("--- ADVANCED DIAGNOSTICS: Piecewise Rational (2,1) ---")
-    print(f"R^2 (Historical/Train): {r2_train:.6f}")
-    print(f"R^2 (Validation):       {r2_val:.6f}")
+    print(f"R² (Historical/Train): {r2_train:.6f}")
+    print(f"R² (Validation):       {r2_val:.6f}")
     print(f"MAE (Validation):       {mae_val:.4f} ppm")
     print(f"RMSE (Validation):      {rmse_val:.4f} ppm")
     print(f"Residual Normality p-val: {p_norm:.4f} ({'Normal' if p_norm > 0.05 else 'Non-Normal'})")
@@ -101,10 +101,11 @@ def main():
         f"Validation Statistics (2022-2024):\n"
         f"RMSE: {rmse_val:.4f} ppm\n"
         f"MAE:  {mae_val:.4f} ppm\n"
-        f"R^2:  {r2_val:.4f}"
+        f"$R^2$:  {r2_val:.4f}"
     )
     fig.text(0.5, 0.02, summary_text, ha='center', fontsize=14, fontweight='bold',
              bbox=dict(boxstyle='round', facecolor='white', alpha=0.9, edgecolor=GRAY))
+
 
     plt.tight_layout(rect=[0, 0.05, 1, 0.95])
     

@@ -65,7 +65,11 @@ class NonlinearOdyssey(Scene):
         
         # --- R2 Display Setup ---
         r2_tracker = ValueTracker(0)
-        r2_label_text = get_superscript("R", "2", color=YELLOW, font_size=30)
+        # Use proper subscript/superscript formatting for R^2
+        r2_main = Text("R", font_size=30, color=YELLOW)
+        r2_sup = Text("2", font_size=20, color=YELLOW).next_to(r2_main, UR, buff=0.03).shift(DOWN * 0.05)
+        r2_label_text = VGroup(r2_main, r2_sup)
+        
         r2_equals = Text(" = ", font_size=30, color=YELLOW).next_to(r2_label_text, RIGHT, buff=0.1)
         
         def r2_val_func():
