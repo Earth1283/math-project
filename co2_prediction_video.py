@@ -134,19 +134,37 @@ class CO2PredictionExplainer(Scene):
             axis_config={"include_numbers": True, "label_constructor": Text, "font_size": 20},
             tips=False
         ).shift(DOWN * 0.5)
+        
+        new_labels = new_axes.get_axis_labels(
+            x_label=Text("Year", font_size=20),
+            y_label=VGroup(get_co2_label(font_size=20), Text(" (ppm)", font_size=18)).arrange(RIGHT, buff=0.1)
+        )
 
-        # Threshold Line - Redrawable
-        threshold_line = always_redraw(lambda: DashedLine(
-            axes.c2p(1950, 685), axes.c2p(2220, 685),
+        # Remove old redrawables before transform to avoid ghosting or scale issues
+        self.remove(dots, line_lin, line_exp, line_rat)
+        
+        # Threshold Line (tied to new_axes)
+        threshold_line = DashedLine(
+            new_axes.c2p(1950, 685), new_axes.c2p(2220, 685),
             color=RED_C, stroke_width=2
-        ))
-        threshold_label = always_redraw(lambda: Text("Threshold: 685 ppm", font_size=18, color=RED_C).next_to(threshold_line, UP, buff=0.1).to_edge(LEFT, buff=1.5))
+        )
+        threshold_label = Text("Threshold: 685 ppm", font_size=18, color=RED_C).next_to(threshold_line, UP, buff=0.1).to_edge(LEFT, buff=1.5)
 
         self.play(
-            Transform(axes, new_axes),
-            Write(threshold_line), Write(threshold_label),
+            ReplacementTransform(axes, new_axes),
+            ReplacementTransform(labels, new_labels),
             run_time=2
         )
+        axes = new_axes # Update reference for updaters
+        
+        # Re-add redrawables with updated axes reference
+        dots = always_redraw(lambda: VGroup(*[Dot(axes.c2p(x, y), color=GRAY_C, radius=0.03, fill_opacity=0.4) for x, y in zip(years_hist, co2_hist)]))
+        line_lin = get_line(lambda x: linear_func(x, *p_lin), p_lin, 1959, time_tracker, BLUE_C)
+        line_exp = get_line(lambda x: exponential_func(x, *p_exp), p_exp, 1990, time_tracker, ORANGE_C)
+        line_rat = get_line(lambda x: rational_2_1(x, *p_rat), p_rat, 1990, time_tracker, GREEN_C)
+        
+        self.add(dots, line_lin, line_exp, line_rat)
+        self.play(Write(threshold_line), Write(threshold_label))
         self.wait(1)
 
         # Continue growth to 685 ppm
