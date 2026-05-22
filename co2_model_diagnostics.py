@@ -56,42 +56,61 @@ def main():
     print("3. Residual Pattern: Random distribution around zero indicates no significant bias.")
     print("4. Extrapolation Risk: Rational models are less prone to infinite growth than exponentials, but sensitive to asymptote locations.")
 
-    # 5. Diagnostic Visualization
+    # 5. Diagnostic Visualization (Focusing on Testing Data 2022-2024)
     fig, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2, 2, figsize=(16, 12), dpi=300)
     
-    # Panel 1: Fit and Zoomed Validation
-    ax1.scatter(x2_train[-10:], y2_train[-10:], color=GRAY, alpha=0.6, label='Hist (Recent)')
-    ax1.scatter(years_val, co2_val, color=RED, marker='X', s=100, label='Real Data (22-24)')
-    xr = np.linspace(2010, 2025, 100)
-    ax1.plot(xr, f_rat(xr, *p_rat), color=GREEN, linewidth=2, label='Rational Fit')
-    ax1.set_title("Model Fit: Recent Trend & Validation", fontweight='bold')
+    # Panel 1: Actual vs. Predicted (Testing Data)
+    ax1.scatter(years_val, co2_val, color=RED, marker='X', s=150, label='Actual (Testing Data)', zorder=5)
+    ax1.plot(years_val, val_preds, color=GREEN, marker='o', markersize=10, linestyle='--', linewidth=2, label='Model Prediction')
+    ax1.set_title("Testing Data: Actual vs. Predicted (2022-2024)", fontweight='bold', fontsize=14)
+    ax1.set_xticks(years_val)
+    ax1.set_ylabel("CO$_2$ Concentration (ppm)")
     ax1.legend()
     ax1.grid(True, alpha=0.3)
     
-    # Panel 2: Historical Residuals (Check for patterns)
-    ax2.scatter(x2_train, train_residuals, color=GREEN, alpha=0.6)
-    ax2.axhline(0, color='black', linestyle='--')
-    ax2.set_title("Historical Residuals (Post-1990)", fontweight='bold')
-    ax2.set_ylabel("Error (ppm)")
-    ax2.grid(True, alpha=0.3)
+    # Panel 2: Validation Residuals (The "Gap")
+    ax2.bar([str(y) for y in years_val], val_residuals, color=ORANGE, alpha=0.8, edgecolor='black')
+    ax2.axhline(0, color='black', linestyle='-', linewidth=1.5)
+    ax2.set_title("Validation Residuals (Prediction Error)", fontweight='bold', fontsize=14)
+    ax2.set_ylabel("Error (Actual - Predicted) [ppm]")
+    ax2.grid(axis='y', alpha=0.3)
     
-    # Panel 3: Error Distribution (Normality)
-    ax3.hist(train_residuals, bins=15, color=GREEN, alpha=0.7, edgecolor='white')
-    ax3.set_title("Residual Distribution (Density)", fontweight='bold')
-    ax3.set_xlabel("Error (ppm)")
+    # Panel 3: Prediction Accuracy (Percent Error)
+    pct_errors = (val_residuals / co2_val) * 100
+    ax3.bar([str(y) for y in years_val], pct_errors, color=BLUE, alpha=0.8, edgecolor='black')
+    ax3.axhline(0, color='black', linestyle='-', linewidth=1.5)
+    ax3.set_title("Prediction Error Percentage", fontweight='bold', fontsize=14)
+    ax3.set_ylabel("Error %")
+    ax3.grid(axis='y', alpha=0.3)
     
-    # Panel 4: Validation Errors
-    ax4.bar([str(y) for y in years_val], val_residuals, color=RED, alpha=0.7)
-    ax4.axhline(0, color='black', linewidth=1)
-    ax4.set_title("Validation Prediction Errors (2022-2024)", fontweight='bold')
-    ax4.set_ylabel("Actual - Predicted (ppm)")
+    # Panel 4: Local Trend Alignment (Last Hist + Val)
+    recent_x = np.concatenate([x2_train[-5:], years_val])
+    recent_y = np.concatenate([y2_train[-5:], co2_val])
+    ax4.scatter(x2_train[-5:], y2_train[-5:], color=GRAY, s=80, label='Hist Tail (2016-2020)')
+    ax4.scatter(years_val, co2_val, color=RED, marker='X', s=120, label='Testing Data (2022-2024)')
+    xr_fine = np.linspace(2015, 2025, 100)
+    ax4.plot(xr_fine, f_rat(xr_fine, *p_rat), color=GREEN, linewidth=2.5, label='Rational Model Trend')
+    ax4.set_title("Local Trend Alignment (2015-2025)", fontweight='bold', fontsize=14)
+    ax4.legend(fontsize=10)
+    ax4.grid(True, alpha=0.3)
     
-    plt.suptitle("Statistical Diagnostics: Piecewise Rational CO$_2$ Model", fontsize=20, fontweight='bold')
-    plt.tight_layout(rect=[0, 0.03, 1, 0.95])
+    plt.suptitle("Testing Data Diagnostics: Piecewise Rational CO$_2$ Model", fontsize=22, fontweight='bold')
     
-    output_path = os.path.join("co2_projections", "model_diagnostics.png")
+    # Add summary text box
+    summary_text = (
+        f"Validation Statistics (2022-2024):\n"
+        f"RMSE: {rmse_val:.4f} ppm\n"
+        f"MAE:  {mae_val:.4f} ppm\n"
+        f"R^2:  {r2_val:.4f}"
+    )
+    fig.text(0.5, 0.02, summary_text, ha='center', fontsize=14, fontweight='bold',
+             bbox=dict(boxstyle='round', facecolor='white', alpha=0.9, edgecolor=GRAY))
+
+    plt.tight_layout(rect=[0, 0.05, 1, 0.95])
+    
+    output_path = os.path.join("co2_projections", "model_diagnostics_testing.png")
     plt.savefig(output_path)
-    print(f"\nDiagnostic plot saved to {output_path}")
+    print(f"\nTargeted diagnostic plot saved to {output_path}")
 
 if __name__ == "__main__":
     main()
