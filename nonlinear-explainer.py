@@ -53,14 +53,13 @@ class NonlinearOdyssey(Scene):
         # 3. Scene 2: Attempting Global Rational
         rat_label = Text("Attempt 1: Global Rational Fit", font_size=24, color=RED).to_corner(UL).shift(DOWN*0.5)
         rat_comment = Text("Equation is having an existential crisis...", font_size=20, color=RED, slant=ITALIC).next_to(rat_label, DOWN, aligned_edge=LEFT)
-        emoji = Text("😵‍💫", font_size=40).next_to(rat_comment, RIGHT) # 😵‍💫
 
         # Create a "forced" looking rational curve that fits poorly
         line_fail = axes.plot(lambda x: (0.5 * (x-310)**2 - 10*(x-310) + 5) / (2*(x-310) + 1) - 0.2, x_range=[315, 415], color=RED)
 
         self.play(Write(rat_label))
         self.play(Create(line_fail), run_time=2)
-        self.play(Write(rat_comment), FadeIn(emoji))
+        self.play(Write(rat_comment))
         
         # Vibration
         self.play(line_fail.animate.shift(UP*0.1), run_time=0.1)
@@ -68,7 +67,7 @@ class NonlinearOdyssey(Scene):
         self.play(line_fail.animate.shift(UP*0.1), run_time=0.1)
         
         self.wait(2)
-        self.play(FadeOut(VGroup(rat_label, rat_comment, emoji, line_fail)))
+        self.play(FadeOut(VGroup(rat_label, rat_comment, line_fail)))
 
         # 4. Scene 3: The Breakthrough
         break_text = Text("GALAXY BRAIN MOMENT: Segment at 1990", font_size=32, color=GOLD).to_edge(UP)
@@ -82,7 +81,7 @@ class NonlinearOdyssey(Scene):
         self.wait(1)
 
         # 5. Scene 4: The Win
-        win_label = Text("Now we're cooking with science! \ud83d\udd25", font_size=32, color=GREEN).to_corner(UL).shift(DOWN*0.5)
+        win_label = Text("Now we're cooking with science!", font_size=32, color=GREEN).to_corner(UL).shift(DOWN*0.5)
         
         s1_line = axes.plot(lambda x: 0.00022 * x**2 - 0.1468 * x + 22.8051, x_range=[315.98, 354.35], color=BLUE)
         s2_line = axes.plot(lambda x: 2.33e-7 * np.exp(0.0470 * (x - 355.62)) - 0.2081, x_range=[355.62, 414.24], color=RED)
