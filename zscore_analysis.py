@@ -1,6 +1,10 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
+# Style Constants (Colorblind-friendly)
+BLUE = "#0072B2"
+ORANGE = "#D55E00"
+
 def load_csv(file_path: str) -> np.ndarray:
     """
     Loads a CSV file into a NumPy array, skipping the header.

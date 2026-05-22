@@ -282,6 +282,12 @@ def get_best_fit(x_data: np.ndarray, y_data: np.ndarray, models_to_test: list[st
             
     return best_model, best_func, best_popt, best_r2, best_rmse
 
+# Style Constants (Colorblind-friendly)
+BLUE = "#0072B2"
+ORANGE = "#D55E00"
+GREEN = "#009E73"
+GRAY = "#999999"
+
 def generate_equation_string(model_name: str, popt: np.ndarray) -> str:
     """
     Generates a LaTeX-formatted equation string for the fitted model.
@@ -298,119 +304,84 @@ def generate_equation_string(model_name: str, popt: np.ndarray) -> str:
         return f"$y = ({popt[0]:.4f}x^2 {'+' if popt[1] >= 0 else '-'} {abs(popt[1]):.4f}x {'+' if popt[2] >= 0 else '-'} {abs(popt[2]):.4f}) / ({popt[3]:.4f}x + 1)$"
     return ""
 
-def plot_piecewise_comparison(
+def plot_combined_results(
     s1_data: tuple[np.ndarray, np.ndarray, np.ndarray],
     s2_data: tuple[np.ndarray, np.ndarray, np.ndarray],
     s1_best: tuple[str, Callable, np.ndarray, float, float],
     s2_best: tuple[str, Callable, np.ndarray, float, float],
-    output_dir: str,
-    breakpoint_year: int = 1990
-):
-    """
-    Creates and saves a high-definition piecewise comparison plot.
-    
-    Args:
-        s1_data: Segment 1 (years, co2, temp).
-        s2_data: Segment 2 (years, co2, temp).
-        s1_best: Best fit info for Segment 1.
-        s2_best: Best fit info for Segment 2.
-        output_dir: Directory to save the plot.
-        breakpoint_year: The year where segments split.
-    """
-    os.makedirs(output_dir, exist_ok=True)
-    
-    plt.figure(figsize=(14, 8), dpi=300)
-    
-    # Extract data
-    years1, co2_1, temp_1 = s1_data
-    years2, co2_2, temp_2 = s2_data
-    
-    # Scatter actual data
-    plt.scatter(co2_1, temp_1, color='lightskyblue', alpha=0.5, label='Actual Data (Seg 1)')
-    plt.scatter(co2_2, temp_2, color='salmon', alpha=0.5, label='Actual Data (Seg 2)')
-    
-    # Plot Segment 1 Best Fit
-    name1, func1, popt1, r2_1, rmse1 = s1_best
-    x_range1 = np.linspace(co2_1.min(), co2_1.max(), 100)
-    plt.plot(x_range1, func1(x_range1, *popt1), color='blue', linewidth=2, 
-             label=f'Seg 1: {name1.capitalize()} (R²={r2_1:.4f}, RMSE={rmse1:.4f})')
-    
-    # Plot Segment 2 Best Fit
-    name2, func2, popt2, r2_2, rmse2 = s2_best
-    x_range2 = np.linspace(co2_2.min(), co2_2.max(), 100)
-    plt.plot(x_range2, func2(x_range2, *popt2), color='red', linewidth=2, 
-             label=f'Seg 2: {name2.capitalize()} (R²={r2_2:.4f}, RMSE={rmse2:.4f})')
-    
-    # Add Equation Annotations
-    eq1 = generate_equation_string(name1, popt1)
-    eq2 = generate_equation_string(name2, popt2)
-    
-    # Position equations prominently but away from the legend
-    plt.text(0.05, 0.95, f"Segment 1 Fit:\n{eq1}", transform=plt.gca().transAxes, 
-             fontsize=11, color='blue', verticalalignment='top', fontweight='bold',
-             bbox=dict(boxstyle='round', facecolor='white', alpha=0.9))
-    
-    plt.text(0.05, 0.82, f"Segment 2 Fit:\n{eq2}", transform=plt.gca().transAxes, 
-             fontsize=11, color='red', verticalalignment='top', fontweight='bold',
-             bbox=dict(boxstyle='round', facecolor='white', alpha=0.9))
-    
-    # Vertical line for breakpoint
-    breakpoint_co2 = co2_1[-1]
-    plt.axvline(breakpoint_co2, color='purple', linestyle='--', alpha=0.7, label=f'Breakpoint ({breakpoint_year})')
-    
-    # HD Labels and Formatting
-    plt.xlabel('CO2 Concentration (ppm)', fontsize=14)
-    plt.ylabel('Surface Air Temperature Change (°C)', fontsize=14)
-    plt.title('Piecewise Nonlinear Fit Comparison: CO2 vs Temperature', fontsize=16, fontweight='bold')
-    plt.legend(fontsize=10, loc='lower right', framealpha=0.9)
-    plt.grid(True, linestyle=':', alpha=0.6)
-    
-    output_path = os.path.join(output_dir, "piecewise_fit_comparison.png")
-    plt.savefig(output_path)
-    plt.close()
-    print(f"Plot saved to {output_path}")
-
-def plot_residual_comparison(
-    co2: np.ndarray,
     global_residuals: np.ndarray,
     piecewise_residuals: np.ndarray,
     global_r2: float,
     piecewise_r2: float,
-    output_dir: str
+    output_dir: str,
+    file_prefix: str,
+    breakpoint_year: int = 1990
 ):
     """
-    Creates and saves a high-definition residual comparison plot.
-    
-    Args:
-        co2: CO2 concentration data (X-axis).
-        global_residuals: Residuals from the global linear model.
-        piecewise_residuals: Residuals from the piecewise nonlinear model.
-        global_r2: R^2 score of the global linear model.
-        piecewise_r2: R^2 score of the piecewise nonlinear model.
-        output_dir: Directory to save the plot.
+    Creates and saves a multi-panel HD plot showing fits and residuals.
     """
     os.makedirs(output_dir, exist_ok=True)
     
-    plt.figure(figsize=(14, 8), dpi=300)
+    # Extract data
+    years1, co2_1, temp_1 = s1_data
+    years2, co2_2, temp_2 = s2_data
+    all_co2 = np.concatenate([co2_1, co2_2])
     
-    # Plot residuals
-    plt.scatter(co2, global_residuals, color='gray', alpha=0.5, label=f'Global Linear Residuals (R²={global_r2:.4f})')
-    plt.scatter(co2, piecewise_residuals, color='blue', alpha=0.7, label=f'Piecewise Nonlinear Residuals (R²={piecewise_r2:.4f})')
+    # Calculate split point for plotting continuity
+    split_co2 = (co2_1[-1] + co2_2[0]) / 2.0
     
-    # Reference line
-    plt.axhline(0, color='black', linestyle='--', linewidth=1, alpha=0.8)
+    fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(14, 16), dpi=300)
     
-    # HD Labels and Formatting
-    plt.xlabel('CO2 Concentration (ppm)', fontsize=12)
-    plt.ylabel('Temperature Residual (°C)', fontsize=12)
-    plt.title('Residual Analysis: Global Linear vs. Piecewise Nonlinear Model', fontsize=14, fontweight='bold')
-    plt.legend(fontsize=10, loc='upper left')
-    plt.grid(True, linestyle=':', alpha=0.6)
+    # --- Top Subplot: Piecewise Fits ---
+    # Scatter actual data
+    ax1.scatter(co2_1, temp_1, color=BLUE, alpha=0.3, s=40, label=f'Data (pre-{breakpoint_year})')
+    ax1.scatter(co2_2, temp_2, color=ORANGE, alpha=0.3, s=40, label=f'Data (post-{breakpoint_year})')
     
-    output_path = os.path.join(output_dir, "residual_improvement.png")
+    # Plot Segment 1 Best Fit
+    name1, func1, popt1, r2_1, rmse1 = s1_best
+    x_range1 = np.linspace(co2_1.min(), split_co2, 100)
+    ax1.plot(x_range1, func1(x_range1, *popt1), color=BLUE, linewidth=3, 
+             label=f'Seg 1: {name1.capitalize()} ($R^2={r2_1:.4f}$)')
+    
+    # Plot Segment 2 Best Fit
+    name2, func2, popt2, r2_2, rmse2 = s2_best
+    x_range2 = np.linspace(split_co2, co2_2.max(), 100)
+    ax1.plot(x_range2, func2(x_range2, *popt2), color=ORANGE, linewidth=3, 
+             label=f'Seg 2: {name2.capitalize()} ($R^2={r2_2:.4f}$)')
+    
+    # Vertical line for breakpoint
+    ax1.axvline(split_co2, color=GRAY, linestyle='--', linewidth=1.5, alpha=0.8, label=f'Breakpoint ({breakpoint_year})')
+    
+    # Annotations
+    eq1 = generate_equation_string(name1, popt1)
+    eq2 = generate_equation_string(name2, popt2)
+    stats_text = f"Segment 1 Fit:\n{eq1}\n\nSegment 2 Fit:\n{eq2}"
+    ax1.text(0.02, 0.98, stats_text, transform=ax1.transAxes, 
+             fontsize=12, verticalalignment='top', fontweight='bold',
+             bbox=dict(boxstyle='round', facecolor='white', alpha=0.9))
+    
+    ax1.set_xlabel('$CO_2$ Concentration (ppm)', fontsize=14)
+    ax1.set_ylabel('Temperature Change (°C)', fontsize=14)
+    ax1.set_title(f'Piecewise Nonlinear Fit: {file_prefix.replace("_", " ").title()}', fontsize=18, fontweight='bold')
+    ax1.legend(loc='lower right', fontsize=12)
+    ax1.grid(True, linestyle=':', alpha=0.6)
+    
+    # --- Bottom Subplot: Residuals ---
+    ax2.scatter(all_co2, global_residuals, color=GRAY, alpha=0.4, s=30, label=f'Global Linear Residuals ($R^2={global_r2:.4f}$)')
+    ax2.scatter(all_co2, piecewise_residuals, color=GREEN, alpha=0.7, s=40, label=f'Piecewise Nonlinear Residuals ($R^2={piecewise_r2:.4f}$)')
+    
+    ax2.axhline(0, color='black', linestyle='--', linewidth=1.5, alpha=0.8)
+    ax2.set_xlabel('$CO_2$ Concentration (ppm)', fontsize=14)
+    ax2.set_ylabel('Residual (°C)', fontsize=14)
+    ax2.set_title('Residual Comparison: Global vs. Piecewise', fontsize=16, fontweight='bold')
+    ax2.legend(loc='upper left', fontsize=12)
+    ax2.grid(True, linestyle=':', alpha=0.6)
+    
+    plt.tight_layout()
+    output_path = os.path.join(output_dir, f"{file_prefix}_analysis.png")
     plt.savefig(output_path)
     plt.close()
-    print(f"Residual plot saved to {output_path}")
+    print(f"Combined analysis plot saved to {output_path}")
 
 def main():
     """Main execution function for nonlinear analysis."""
@@ -433,10 +404,8 @@ def main():
         s2_best_bl = get_best_fit(s2[1], s2[2], baseline_models)
         
         # Combined metrics
-        # Seg 1
         _, f1_bl, p1_bl, _, _ = s1_best_bl
         pred1_bl = f1_bl(s1[1], *p1_bl)
-        # Seg 2
         _, f2_bl, p2_bl, _, _ = s2_best_bl
         pred2_bl = f2_bl(s2[1], *p2_bl)
         
@@ -444,8 +413,8 @@ def main():
         p_r2_bl = r2_score(temp, p_pred_bl)
         p_res_bl = temp - p_pred_bl
         
-        plot_piecewise_comparison(s1, s2, s1_best_bl, s2_best_bl, "nonlinear_results/baseline")
-        plot_residual_comparison(co2, global_residuals, p_res_bl, g_r2, p_r2_bl, "nonlinear_results/baseline")
+        plot_combined_results(s1, s2, s1_best_bl, s2_best_bl, global_residuals, p_res_bl, 
+                             g_r2, p_r2_bl, "nonlinear_results", "baseline")
 
         # --- PASS 2: Rational Exploration (All models) ---
         print("\n--- PASS 2: Rational Exploration Analysis ---")
@@ -454,10 +423,8 @@ def main():
         s2_best_rt = get_best_fit(s2[1], s2[2], all_models)
         
         # Combined metrics
-        # Seg 1
         _, f1_rt, p1_rt, _, _ = s1_best_rt
         pred1_rt = f1_rt(s1[1], *p1_rt)
-        # Seg 2
         _, f2_rt, p2_rt, _, _ = s2_best_rt
         pred2_rt = f2_rt(s2[1], *p2_rt)
         
@@ -465,8 +432,8 @@ def main():
         p_r2_rt = r2_score(temp, p_pred_rt)
         p_res_rt = temp - p_pred_rt
         
-        plot_piecewise_comparison(s1, s2, s1_best_rt, s2_best_rt, "nonlinear_results/rational_exploration")
-        plot_residual_comparison(co2, global_residuals, p_res_rt, g_r2, p_r2_rt, "nonlinear_results/rational_exploration")
+        plot_combined_results(s1, s2, s1_best_rt, s2_best_rt, global_residuals, p_res_rt, 
+                             g_r2, p_r2_rt, "nonlinear_results", "rational_exploration")
 
         print("\n" + "="*40)
         print("FINAL COMPARISON SUMMARY")

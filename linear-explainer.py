@@ -20,9 +20,9 @@ class LinearRegressionExplainer(Scene):
             return VGroup(main, sup)
 
         # 1. Introduction
-        co2_label_title = get_subscript("CO", "2", font_size=32)
+        co2_label_title = MathTex(r"CO_2", font_size=48)
         vs_text = Text(" vs. Temperature Change", font_size=32)
-        title = VGroup(co2_label_title, vs_text).arrange(RIGHT, buff=0.1).to_edge(UP, buff=0.5)
+        title = VGroup(co2_label_title, vs_text).arrange(RIGHT, buff=0.2).to_edge(UP, buff=0.5)
         self.play(Write(title))
         self.wait(1)
         
@@ -59,7 +59,7 @@ class LinearRegressionExplainer(Scene):
             }
         ).to_edge(DL, buff=1.0)
         
-        co2_label_axis = VGroup(get_subscript("CO", "2", font_size=18), Text(" Concentration (ppm)", font_size=18)).arrange(RIGHT, buff=0.1)
+        co2_label_axis = VGroup(MathTex(r"CO_2", font_size=28), Text(" Concentration (ppm)", font_size=18)).arrange(RIGHT, buff=0.1)
         x_label = axes.get_x_axis_label(co2_label_axis).shift(UP * 0.2)
         y_label = axes.get_y_axis_label(Text("Temp (C)", font_size=18)).shift(RIGHT * 0.2)
         

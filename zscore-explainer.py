@@ -54,7 +54,7 @@ class ZScoreExplainer(Scene):
         )
         
         label_co2 = VGroup(
-            get_subscript("CO", "2", font_size=20, color=BLUE), 
+            MathTex(r"CO_2", font_size=30, color=BLUE), 
             Text(" Concentration", font_size=20, color=BLUE)
         ).arrange(RIGHT, buff=0.1).next_to(ax_co2, UP)
         
@@ -97,8 +97,8 @@ class ZScoreExplainer(Scene):
         # 3. Scene 2: Standardizing CO2
         math_title = VGroup(
             Text("Standardization: ", font_size=32), 
-            get_subscript("CO", "2", font_size=32)
-        ).arrange(RIGHT, buff=0.1).to_edge(UP)
+            MathTex(r"CO_2", font_size=48)
+        ).arrange(RIGHT, buff=0.2).to_edge(UP)
         
         # formula components
         z_prefix = Text("z", font_size=36)
@@ -198,9 +198,9 @@ class ZScoreExplainer(Scene):
         
         # Reposition labels
         label_z_co2 = VGroup(
-            get_subscript("CO", "2", font_size=18, color=BLUE), 
+            MathTex(r"CO_2", font_size=28, color=BLUE), 
             Text(" (Standardized)", font_size=18, color=BLUE)
-        ).arrange(RIGHT, buff=0.05).next_to(ax_z, UP, buff=0.2).to_edge(LEFT, buff=1.5)
+        ).arrange(RIGHT, buff=0.1).next_to(ax_z, UP, buff=0.2).to_edge(LEFT, buff=1.5)
         
         label_z_temp = Text("Temp (Standardized)", font_size=18, color=ORANGE).next_to(ax_z, UP, buff=0.2).to_edge(RIGHT, buff=1.5)
 

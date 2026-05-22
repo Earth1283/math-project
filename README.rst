@@ -1,7 +1,7 @@
-CO2 vs. Global Temperature Analysis
-====================================
+CO\ :sub:`2` vs. Global Temperature Analysis
+================================================
 
-This repository provides a mathematical and visual analysis of the relationship between atmospheric CO2 concentrations and global surface air temperature changes from 1959 to the present.
+This repository provides a mathematical and visual analysis of the relationship between atmospheric CO\ :sub:`2` concentrations and global surface air temperature changes from 1959 to the present.
 
 .. image:: regression_analysis.png
    :width: 600
@@ -25,7 +25,7 @@ Data Sources
 
 The analysis uses the following datasets located in the ``data/`` directory:
 
-- ``co2-ppm.csv``: Yearly atmospheric CO2 levels (ppm).
+- ``co2-ppm.csv``: Yearly atmospheric CO\ :sub:`2` levels (ppm).
 - ``surface-air-temp-change.csv``: Yearly global temperature change (Degrees C).
 
 Usage
