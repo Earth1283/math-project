@@ -69,3 +69,14 @@ class NonlinearOdyssey(Scene):
         
         self.wait(2)
         self.play(FadeOut(VGroup(rat_label, rat_comment, emoji, line_fail)))
+
+        # 4. Scene 3: The Breakthrough
+        break_text = Text("GALAXY BRAIN MOMENT: Segment at 1990", font_size=32, color=GOLD).to_edge(UP)
+        self.play(Transform(title, break_text))
+        
+        bp_x = 354
+        bp_line = DashedLine(axes.c2p(bp_x, -0.5), axes.c2p(bp_x, 1.5), color=GOLD)
+        bp_label = Text("1990: The Math Hinge", font_size=18, color=GOLD).next_to(bp_line, UP)
+        
+        self.play(Create(bp_line), Write(bp_label))
+        self.wait(1)
