@@ -282,11 +282,16 @@ def get_best_fit(x_data: np.ndarray, y_data: np.ndarray, models_to_test: list[st
             
     return best_model, best_func, best_popt, best_r2, best_rmse
 
-# Style Constants (Colorblind-friendly)
-BLUE = "#0072B2"
+BLUE   = "#0072B2"
 ORANGE = "#D55E00"
-GREEN = "#009E73"
-GRAY = "#999999"
+GREEN  = "#009E73"
+GRAY   = "#999999"
+
+BG      = "#ffffff"
+AX_BG   = "#ffffff"
+TEXT_C  = "#1a1a1a"
+GRID_C  = "#e4e4e4"
+SPINE_C = "#444444"
 
 def generate_equation_string(model_name: str, popt: np.ndarray) -> str:
     """
@@ -321,65 +326,89 @@ def plot_combined_results(
     Creates and saves a multi-panel HD plot showing fits and residuals.
     """
     os.makedirs(output_dir, exist_ok=True)
-    
-    # Extract data
+
     years1, co2_1, temp_1 = s1_data
     years2, co2_2, temp_2 = s2_data
-    all_co2 = np.concatenate([co2_1, co2_2])
-    
-    # Calculate split point for plotting continuity
+    all_co2   = np.concatenate([co2_1, co2_2])
     split_co2 = (co2_1[-1] + co2_2[0]) / 2.0
-    
-    fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(14, 16), dpi=300)
-    
-    # --- Top Subplot: Piecewise Fits ---
-    # Scatter actual data
-    ax1.scatter(co2_1, temp_1, color=BLUE, alpha=0.3, s=40, label=f'Data (pre-{breakpoint_year})')
-    ax1.scatter(co2_2, temp_2, color=ORANGE, alpha=0.3, s=40, label=f'Data (post-{breakpoint_year})')
-    
-    # Plot Segment 1 Best Fit
+
+    plt.rcParams.update({
+        "figure.facecolor": BG,
+        "axes.facecolor":   AX_BG,
+        "axes.edgecolor":   SPINE_C,
+        "axes.labelcolor":  TEXT_C,
+        "axes.titlecolor":  TEXT_C,
+        "text.color":       TEXT_C,
+        "xtick.color":      TEXT_C,
+        "ytick.color":      TEXT_C,
+        "grid.color":       GRID_C,
+        "grid.linewidth":   0.8,
+        "legend.facecolor": AX_BG,
+        "legend.edgecolor": SPINE_C,
+        "font.family":      "sans-serif",
+        "font.size":        12,
+    })
+
+    fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(14, 13), dpi=300,
+                                   gridspec_kw={"height_ratios": [2, 1]})
+
+    # ── Top: Piecewise Fits ───────────────────────────────────────────────
+    ax1.scatter(co2_1, temp_1, color=BLUE,   alpha=0.35, s=40,
+                edgecolors='none', label=f'Data (pre-{breakpoint_year})', zorder=2)
+    ax1.scatter(co2_2, temp_2, color=ORANGE, alpha=0.35, s=40,
+                edgecolors='none', label=f'Data (post-{breakpoint_year})', zorder=2)
+
     name1, func1, popt1, r2_1, rmse1 = s1_best
-    x_range1 = np.linspace(co2_1.min(), split_co2, 100)
-    ax1.plot(x_range1, func1(x_range1, *popt1), color=BLUE, linewidth=3, 
-             label=f'Seg 1: {name1.capitalize()} ($R^2={r2_1:.4f}$)')
-    
-    # Plot Segment 2 Best Fit
+    x_range1 = np.linspace(co2_1.min(), split_co2, 200)
+    ax1.plot(x_range1, func1(x_range1, *popt1), color=BLUE, linewidth=2.8, zorder=3,
+             label=f'Seg 1: {name1.capitalize()}  ($R^2 = {r2_1:.4f}$)')
+
     name2, func2, popt2, r2_2, rmse2 = s2_best
-    x_range2 = np.linspace(split_co2, co2_2.max(), 100)
-    ax1.plot(x_range2, func2(x_range2, *popt2), color=ORANGE, linewidth=3, 
-             label=f'Seg 2: {name2.capitalize()} ($R^2={r2_2:.4f}$)')
-    
-    # Vertical line for breakpoint
-    ax1.axvline(split_co2, color=GRAY, linestyle='--', linewidth=1.5, alpha=0.8, label=f'Breakpoint ({breakpoint_year})')
-    
-    # Annotations
+    x_range2 = np.linspace(split_co2, co2_2.max(), 200)
+    ax1.plot(x_range2, func2(x_range2, *popt2), color=ORANGE, linewidth=2.8, zorder=3,
+             label=f'Seg 2: {name2.capitalize()}  ($R^2 = {r2_2:.4f}$)')
+
+    ax1.axvline(split_co2, color=GRAY, linestyle='--', linewidth=1.4,
+                alpha=0.7, label=f'Breakpoint ({breakpoint_year})')
+
     eq1 = generate_equation_string(name1, popt1)
     eq2 = generate_equation_string(name2, popt2)
-    stats_text = f"Segment 1 Fit:\n{eq1}\n\nSegment 2 Fit:\n{eq2}"
-    ax1.text(0.02, 0.98, stats_text, transform=ax1.transAxes, 
-             fontsize=12, verticalalignment='top', fontweight='bold',
-             bbox=dict(boxstyle='round', facecolor='white', alpha=0.9))
-    
-    ax1.set_xlabel('$CO_2$ Concentration (ppm)', fontsize=14)
-    ax1.set_ylabel('Temperature Change (°C)', fontsize=14)
-    ax1.set_title(f'Piecewise Nonlinear Fit: {file_prefix.replace("_", " ").title()}', fontsize=18, fontweight='bold')
-    ax1.legend(loc='lower right', fontsize=12)
-    ax1.grid(True, linestyle=':', alpha=0.6)
-    
-    # --- Bottom Subplot: Residuals ---
-    ax2.scatter(all_co2, global_residuals, color=GRAY, alpha=0.4, s=30, label=f'Global Linear Residuals ($R^2={global_r2:.4f}$)')
-    ax2.scatter(all_co2, piecewise_residuals, color=GREEN, alpha=0.7, s=40, label=f'Piecewise Nonlinear Residuals ($R^2={piecewise_r2:.4f}$)')
-    
-    ax2.axhline(0, color='black', linestyle='--', linewidth=1.5, alpha=0.8)
-    ax2.set_xlabel('$CO_2$ Concentration (ppm)', fontsize=14)
-    ax2.set_ylabel('Residual (°C)', fontsize=14)
-    ax2.set_title('Residual Comparison: Global vs. Piecewise', fontsize=16, fontweight='bold')
-    ax2.legend(loc='upper left', fontsize=12)
-    ax2.grid(True, linestyle=':', alpha=0.6)
-    
-    plt.tight_layout()
+    stats_text = f"Segment 1:\n{eq1}\n\nSegment 2:\n{eq2}"
+    ax1.text(0.02, 0.98, stats_text, transform=ax1.transAxes,
+             fontsize=11, verticalalignment='top', color=TEXT_C,
+             bbox=dict(boxstyle='round,pad=0.5', facecolor=AX_BG,
+                       edgecolor=SPINE_C, alpha=0.95))
+
+    ax1.set_title(f'Piecewise Nonlinear Fit: {file_prefix.replace("_", " ").title()}',
+                  fontsize=17, fontweight='bold', pad=12)
+    ax1.set_xlabel(r'$\mathrm{CO}_2$ Concentration (ppm)', fontsize=13, labelpad=8)
+    ax1.set_ylabel('Temperature Change (°C)',              fontsize=13, labelpad=8)
+    ax1.legend(loc='lower right', fontsize=11, framealpha=0.9)
+    ax1.grid(True, linestyle=':', alpha=0.5)
+    ax1.spines["top"].set_visible(False)
+    ax1.spines["right"].set_visible(False)
+
+    # ── Bottom: Residuals ─────────────────────────────────────────────────
+    ax2.scatter(all_co2, global_residuals, color=GRAY, alpha=0.45, s=30,
+                edgecolors='none',
+                label=f'Global Linear Residuals  ($R^2 = {global_r2:.4f}$)', zorder=2)
+    ax2.scatter(all_co2, piecewise_residuals, color=GREEN, alpha=0.65, s=40,
+                edgecolors='none',
+                label=f'Piecewise Nonlinear Residuals  ($R^2 = {piecewise_r2:.4f}$)', zorder=3)
+
+    ax2.axhline(0, color=TEXT_C, linestyle='--', linewidth=1.4, alpha=0.6)
+    ax2.set_title('Residual Comparison: Global vs. Piecewise',
+                  fontsize=14, fontweight='bold', pad=10)
+    ax2.set_xlabel(r'$\mathrm{CO}_2$ Concentration (ppm)', fontsize=13, labelpad=8)
+    ax2.set_ylabel('Residual (°C)',                        fontsize=13, labelpad=8)
+    ax2.legend(loc='upper left', fontsize=11, framealpha=0.9)
+    ax2.grid(True, linestyle=':', alpha=0.5)
+    ax2.spines["top"].set_visible(False)
+    ax2.spines["right"].set_visible(False)
+
+    plt.tight_layout(h_pad=2.5)
     output_path = os.path.join(output_dir, f"{file_prefix}_analysis.png")
-    plt.savefig(output_path)
+    plt.savefig(output_path, facecolor=BG)
     plt.close()
     print(f"Combined analysis plot saved to {output_path}")
 

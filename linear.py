@@ -2,6 +2,18 @@ import numpy as np
 from sklearn.linear_model import LinearRegression
 import matplotlib.pyplot as plt
 
+BLUE   = "#0072B2"
+ORANGE = "#D55E00"
+GREEN  = "#009E73"
+RED    = "#CC79A7"
+GRAY   = "#999999"
+
+BG      = "#ffffff"
+AX_BG   = "#ffffff"
+TEXT_C  = "#1a1a1a"
+GRID_C  = "#e4e4e4"
+SPINE_C = "#444444"
+
 def load_csv(file_path: str) -> np.ndarray:
     """
     Loads a CSV file into a NumPy array, skipping the header.
@@ -89,52 +101,74 @@ def fit_model(X: np.ndarray, y: np.ndarray) -> tuple[LinearRegression, np.ndarra
     return model, X_reshaped, r2, coef, intercept
 
 def plot_results(X: np.ndarray, y: np.ndarray, model: LinearRegression) -> None:
-    """
-    Plots the regression results and residuals.
-    
-    Args:
-        X: Feature array (reshaped).
-        y: Target array.
-        model: Trained LinearRegression model.
-    """
-    y_pred = model.predict(X)
+    y_pred    = model.predict(X)
     residuals = y - y_pred
-    
-    # Get coefficients for the equation
-    coef = model.coef_[0]
+
+    coef      = model.coef_[0]
     intercept = model.intercept_
-    r2 = model.score(X, y)
-    equation = f"y = {coef:.4f}x + ({intercept:.4f})"
-    
-    # High-Definition Figure
-    fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(12, 14), dpi=300)
-    
-    # Top Subplot: Regression Line
-    ax1.scatter(X, y, color='blue', alpha=0.6, s=40, label='Actual Data')
-    ax1.plot(X, y_pred, color='red', linewidth=3, label=f'Regression Line\n{equation}')
-    ax1.set_xlabel('$CO_2$ Concentration (ppm)', fontsize=12)
-    ax1.set_ylabel('Temperature Change (Degrees C)', fontsize=12)
-    ax1.set_title('Linear Regression: $CO_2$ vs. Temperature Change', fontsize=16, fontweight='bold')
-    
-    # Statistical Annotation Box
-    stats_text = f"Model Statistics:\n$R^2 = {r2:.4f}$\nSlope = {coef:.4f}"
-    ax1.text(0.05, 0.95, stats_text, transform=ax1.transAxes, 
-             fontsize=12, verticalalignment='top', 
-             bbox=dict(boxstyle='round', facecolor='white', alpha=0.8))
-    
-    ax1.legend(loc='lower right', fontsize=10)
-    ax1.grid(True, linestyle='--', alpha=0.7)
-    
-    # Bottom Subplot: Residuals
-    ax2.scatter(y_pred, residuals, color='green', label='Residuals')
-    ax2.axhline(y=0, color='black', linestyle='--')
-    ax2.set_xlabel('Predicted Temperature Change')
-    ax2.set_ylabel('Residuals')
-    ax2.set_title('Residual Plot')
-    ax2.grid(True)
-    
-    plt.tight_layout()
-    plt.savefig('regression_analysis.png')
+    r2        = model.score(X, y)
+    equation  = f"$\\hat{{y}} = {coef:.4f}x + ({intercept:.4f})$"
+
+    plt.rcParams.update({
+        "figure.facecolor": BG,
+        "axes.facecolor":   AX_BG,
+        "axes.edgecolor":   SPINE_C,
+        "axes.labelcolor":  TEXT_C,
+        "axes.titlecolor":  TEXT_C,
+        "text.color":       TEXT_C,
+        "xtick.color":      TEXT_C,
+        "ytick.color":      TEXT_C,
+        "grid.color":       GRID_C,
+        "grid.linewidth":   0.8,
+        "legend.facecolor": AX_BG,
+        "legend.edgecolor": SPINE_C,
+        "font.family":      "sans-serif",
+        "font.size":        12,
+    })
+
+    fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(12, 12), dpi=300,
+                                   gridspec_kw={"height_ratios": [2, 1]})
+
+    # Top: Regression Line
+    ax1.scatter(X, y,
+                color=BLUE, alpha=0.55, s=40,
+                edgecolors='none', label='Actual Data', zorder=2)
+    ax1.plot(X, y_pred,
+             color=RED, linewidth=2.8,
+             label=f'Regression Line\n{equation}', zorder=3)
+
+    stats_text = f"$R^2 = {r2:.4f}$\nSlope = {coef:.4f} °C / ppm"
+    ax1.text(0.05, 0.96, stats_text, transform=ax1.transAxes,
+             fontsize=13, verticalalignment='top', color=TEXT_C,
+             bbox=dict(boxstyle='round,pad=0.5', facecolor=AX_BG,
+                       edgecolor=SPINE_C, alpha=0.95))
+
+    ax1.set_title(r'Linear Regression: $\mathrm{CO}_2$ vs. Temperature Change',
+                  fontsize=16, fontweight='bold', pad=12)
+    ax1.set_xlabel(r'$\mathrm{CO}_2$ Concentration (ppm)', fontsize=13, labelpad=8)
+    ax1.set_ylabel('Temperature Change (°C)',               fontsize=13, labelpad=8)
+    ax1.legend(loc='lower right', fontsize=11, framealpha=0.9)
+    ax1.grid(True, linestyle=':', alpha=0.5)
+    ax1.spines["top"].set_visible(False)
+    ax1.spines["right"].set_visible(False)
+
+    # Bottom: Residuals
+    ax2.scatter(y_pred, residuals,
+                color=GREEN, alpha=0.6, s=40,
+                edgecolors='none', label='Residuals', zorder=2)
+    ax2.axhline(y=0, color=TEXT_C, linestyle='--', linewidth=1.4, alpha=0.6)
+
+    ax2.set_title('Residual Plot', fontsize=14, fontweight='bold', pad=10)
+    ax2.set_xlabel('Predicted Temperature Change (°C)', fontsize=13, labelpad=8)
+    ax2.set_ylabel('Residuals (°C)',                   fontsize=13, labelpad=8)
+    ax2.legend(fontsize=11, framealpha=0.9)
+    ax2.grid(True, linestyle=':', alpha=0.5)
+    ax2.spines["top"].set_visible(False)
+    ax2.spines["right"].set_visible(False)
+
+    plt.tight_layout(h_pad=2.5)
+    plt.savefig('regression_analysis.png', facecolor=BG)
+    plt.close()
     print("Plots saved to regression_analysis.png")
 
 if __name__ == "__main__":
