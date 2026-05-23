@@ -30,7 +30,6 @@ def main():
     co2_val = np.array([418.53, 421.08, 424.61])
     
     # 2. Fit Hybrid Model to ALL Data (1959-2024)
-    # Combine historical and recent data for the ultimate fit
     x_train = np.concatenate([years_hist, years_val])
     y_train = np.concatenate([co2_hist, co2_val])
     
@@ -106,17 +105,8 @@ def main():
     plt.tight_layout()
     output_path = os.path.join("co2_projections", "hybrid_ensemble_fit.png")
     plt.savefig(output_path)
+    plt.close()
     print(f"\nProfessional ensemble analysis plot saved to {output_path}")
-    plt.xlabel('Year', fontsize=14)
-    plt.ylabel('CO$_2$ Concentration (ppm)', fontsize=14)
-    plt.legend(loc='lower right', fontsize=12)
-    plt.grid(True, linestyle=':', alpha=0.6)
-    plt.xlim(1985, 2055)
-    plt.ylim(340, 560)
-    
-    output_path = os.path.join("co2_projections", "hybrid_ensemble_fit.png")
-    plt.savefig(output_path)
-    print(f"\nEnsemble plot saved to {output_path}")
 
 if __name__ == "__main__":
     main()
