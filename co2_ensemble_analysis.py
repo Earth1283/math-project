@@ -56,37 +56,57 @@ def main():
     print(f"Overall MAE:  {mae_total:.4f} ppm")
     print(f"Overall RMSE: {rmse_total:.4f} ppm")
 
-    # 4. Visualization (Focused on Fit Alignment)
-    plt.figure(figsize=(14, 10), dpi=300)
+    # 4. Visualization (Two-Panel Style matching regression_analysis.png)
+    fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(14, 18), dpi=300)
     
-    # Range for current data alignment
+    # --- Top Subplot: Model Fit ---
     years_plot = np.linspace(1959, 2024.5, 400)
     y_plot = hybrid_model(years_plot, *popt)
     
-    # Plot components
-    plt.scatter(years_hist, co2_hist, color=GRAY, alpha=0.5, s=30, label='Historical Data (1959-2020)')
-    plt.scatter(years_val, co2_val, color=RED, marker='X', s=150, label='Recent Data (2022-2024)', zorder=5)
+    # Scatter data
+    ax1.scatter(years_hist, co2_hist, color=BLUE, alpha=0.5, s=40, label='Historical Data (1959-2020)')
+    ax1.scatter(years_val, co2_val, color=RED, marker='X', s=150, label='Recent Data (2022-2024)', zorder=5)
     
-    plt.plot(years_plot, y_plot, color=GREEN, linewidth=3.5, label=f'Integrated Global Fit ($R^2$={r2_total:.4f})')
+    # Plot fit
+    ax1.plot(years_plot, y_plot, color=GREEN, linewidth=3.5, label='Hybrid Ensemble Fit')
     
-    # Equation annotation
-    eq_str = (f"$y(t) = ({popt[0]:.5f}t^2 + {popt[1]:.4f}t + {popt[2]:.1f}) + {popt[3]:.3f}e^{{{popt[4]:.4f}t}}$\n"
-              f"where $t = Year - 1959$")
-    plt.text(0.05, 0.95, f"Integrated Global Model:\n{eq_str}", 
-             transform=plt.gca().transAxes, fontsize=12, verticalalignment='top',
-             bbox=dict(boxstyle='round', facecolor='white', alpha=0.8, edgecolor=GREEN))
+    # Statistics Box
+    stats_text = (f"Model Statistics:\n"
+                  f"$R^2 = {r2_total:.6f}$\n"
+                  f"MAE = {mae_total:.4f} ppm\n"
+                  f"RMSE = {rmse_total:.4f} ppm")
+    ax1.text(0.05, 0.95, stats_text, transform=ax1.transAxes, 
+             fontsize=12, verticalalignment='top', fontweight='bold',
+             bbox=dict(boxstyle='round', facecolor='white', alpha=0.9))
 
-    plt.title('Global CO$_2$ Model Alignment: Integrated Quadratic-Exponential Fit', fontsize=20, fontweight='bold')
-    plt.xlabel('Year', fontsize=14)
-    plt.ylabel('CO$_2$ Concentration (ppm)', fontsize=14)
-    plt.legend(loc='lower right', fontsize=12)
-    plt.grid(True, linestyle=':', alpha=0.6)
-    plt.xlim(1955, 2026)
-    plt.ylim(310, 430)
+    # Equation in Legend
+    eq_label = (f"Fit Equation:\n"
+                f"$y(t) = ({popt[0]:.5f}t^2 + {popt[1]:.4f}t + {popt[2]:.1f}) + {popt[3]:.3f}e^{{{popt[4]:.4f}t}}$")
+    ax1.plot([], [], ' ', label=eq_label) # Dummy for legend entry
+
+    ax1.set_title('Global CO$_2$ Fit: Integrated Hybrid Ensemble Model', fontsize=20, fontweight='bold')
+    ax1.set_xlabel('Year', fontsize=14)
+    ax1.set_ylabel('CO$_2$ Concentration (ppm)', fontsize=14)
+    ax1.legend(loc='lower right', fontsize=11, framealpha=0.9)
+    ax1.grid(True, linestyle=':', alpha=0.6)
+    ax1.set_xlim(1955, 2026)
+    ax1.set_ylim(310, 435)
+
+    # --- Bottom Subplot: Residuals ---
+    residuals = y_train - y_train_pred
+    ax2.scatter(y_train_pred, residuals, color=GREEN, alpha=0.6, s=50, edgecolor='white', label='Residuals')
+    ax2.axhline(0, color='black', linestyle='--', linewidth=2)
     
+    ax2.set_title('Residual Plot: Hybrid Model Accuracy (1959-2024)', fontsize=18, fontweight='bold')
+    ax2.set_xlabel('Predicted CO$_2$ Concentration (ppm)', fontsize=14)
+    ax2.set_ylabel('Residuals (ppm)', fontsize=14)
+    ax2.grid(True, linestyle=':', alpha=0.6)
+    ax2.legend(loc='upper left')
+
+    plt.tight_layout()
     output_path = os.path.join("co2_projections", "hybrid_ensemble_fit.png")
     plt.savefig(output_path)
-    print(f"\nModel alignment plot saved to {output_path}")
+    print(f"\nProfessional ensemble analysis plot saved to {output_path}")
     plt.xlabel('Year', fontsize=14)
     plt.ylabel('CO$_2$ Concentration (ppm)', fontsize=14)
     plt.legend(loc='lower right', fontsize=12)
