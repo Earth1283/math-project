@@ -79,11 +79,28 @@ class EnsembleExplainer(Scene):
         self.play(FadeIn(val_dots, lag_ratio=0.2))
         self.wait(1)
 
+        # Metrics - Redrawable for live changes
+        r2_tracker = ValueTracker(0.0)
+        def get_r2_text():
+            val = r2_tracker.get_value()
+            main = Text("R", font_size=24)
+            sup = Text("2", font_size=16).next_to(main, UR, buff=0.03).shift(DOWN*0.05)
+            eq = Text(f" = {val:.4f}", font_size=24)
+            return VGroup(main, sup, eq).arrange(RIGHT, buff=0.05)
+            
+        r2_display = always_redraw(lambda: get_r2_text().to_corner(UL, buff=1.0).shift(DOWN*1.2))
+        self.add(r2_display)
+        
         # 3. Scene 2: The Foundation (Quadratic)
         quad_curve = axes.plot(lambda x: quad_only(x, *popt[:3]), x_range=[1959, 2024], color=BLUE_C, stroke_width=4)
         quad_label = Text("Foundation: Quadratic Growth", font_size=24, color=BLUE_C).to_corner(UL, buff=1.0).shift(DOWN*0.5)
         
-        self.play(Create(quad_curve), Write(quad_label))
+        # Calculate Quad R2
+        from sklearn.metrics import r2_score
+        y_quad_pred = quad_only(x_full, *popt[:3])
+        r2_quad = r2_score(y_full, y_quad_pred)
+        
+        self.play(Create(quad_curve), Write(quad_label), r2_tracker.animate.set_value(max(0, r2_quad)), run_time=2)
         self.wait(1)
         
         # Highlight the gap at the end
@@ -95,7 +112,6 @@ class EnsembleExplainer(Scene):
         self.play(FadeOut(gap_arrow), FadeOut(gap_text))
 
         # 4. Scene 3: The Accelerator (Exponential)
-        # Shift axes temporarily or show the isolated curve? Let's show it visually added.
         exp_curve = axes.plot(lambda x: exp_only(x, *popt[3:]), x_range=[1959, 2024], color=ORANGE_C, stroke_width=2, stroke_opacity=0.5)
         exp_label = Text("Accelerator: Exponential Component", font_size=24, color=ORANGE_C).next_to(quad_label, DOWN, aligned_edge=LEFT)
         
@@ -112,36 +128,63 @@ class EnsembleExplainer(Scene):
             Text("Exponential", font_size=24, color=ORANGE_C)
         ).arrange(RIGHT, buff=0.1).to_corner(DL, buff=1.0).shift(UP*0.5)
         
+        # Final R2
+        r2_final = r2_score(y_full, hybrid_model(x_full, *popt))
+
         self.play(
             ReplacementTransform(VGroup(quad_curve, exp_curve), full_hybrid_curve),
-            ReplacementTransform(VGroup(quad_label, exp_label), formula)
+            ReplacementTransform(VGroup(quad_label, exp_label), formula),
+            r2_tracker.animate.set_value(r2_final),
+            run_time=2
         )
-        
-        # Metrics
-        r2_text = VGroup(Text("R", font_size=24), Text("2", font_size=16).shift(UR*0.1), Text(" = 0.9996", font_size=24)).arrange(RIGHT, buff=0.05).next_to(formula, DOWN, aligned_edge=LEFT)
-        self.play(Write(r2_text))
         self.wait(2)
 
-        # 6. Scene 5: Projection to 2050
-        time_tracker = ValueTracker(2024)
-        date_text = always_redraw(lambda: Text(format_date(time_tracker.get_value()), font_size=24, color=YELLOW).to_corner(UR, buff=1.0))
+        # 6. Scene 5: Residual Analysis (New Ending)
+        # Shift current scene to top half
+        new_axes_top = Axes(
+            x_range=[1950, 2030, 20],
+            y_range=[300, 450, 50],
+            x_length=10,
+            y_length=3,
+            axis_config={"include_numbers": True, "label_constructor": Text, "font_size": 14},
+            tips=False
+        ).to_edge(UP, buff=0.8)
         
-        # Redraw the growing line
-        final_line = always_redraw(lambda: axes.plot(
-            lambda x: hybrid_model(x, *popt),
-            x_range=[1959, time_tracker.get_value()],
-            color=GREEN_C,
-            stroke_width=5
-        ))
-        self.remove(full_hybrid_curve)
-        self.add(final_line)
+        # Bottom Axes for Residuals
+        axes_res = Axes(
+            x_range=[300, 450, 50],
+            y_range=[-2, 2, 1],
+            x_length=10,
+            y_length=3,
+            axis_config={"include_numbers": True, "label_constructor": Text, "font_size": 14},
+            tips=False
+        ).to_edge(DOWN, buff=0.8)
         
-        self.play(Write(date_text))
-        self.play(time_tracker.animate.set_value(2050), run_time=6, rate_func=linear)
-        self.wait(1)
+        res_label = Text("Residuals (ppm)", font_size=14).next_to(axes_res, LEFT, buff=0.2).rotate(90*DEGREES)
+        res_x_label = Text("Predicted CO2 (ppm)", font_size=14).next_to(axes_res, DOWN, buff=0.2)
+        res_zero_line = DashedLine(axes_res.c2p(300, 0), axes_res.c2p(450, 0), color=WHITE, stroke_opacity=0.5)
+
+        # Transition to two-panel
+        self.play(
+            FadeOut(title), FadeOut(labels), FadeOut(formula), FadeOut(r2_display),
+            ReplacementTransform(axes, new_axes_top),
+            *[d.animate.move_to(new_axes_top.c2p(x_full[i], y_full[i])) for i, d in enumerate(VGroup(*hist_dots, *val_dots))],
+            full_hybrid_curve.animate.become(new_axes_top.plot(lambda x: hybrid_model(x, *popt), x_range=[1959, 2024], color=GREEN_C, stroke_width=3)),
+            run_time=2
+        )
         
-        val_2050 = hybrid_model(2050, *popt)
-        pred_label = Text(f"2050 Prediction: {val_2050:.1f} ppm", font_size=24, color=GREEN_C).next_to(date_text, DOWN, buff=0.5).align_to(date_text, LEFT)
+        self.play(Create(axes_res), Create(res_zero_line), Write(res_label), Write(res_x_label))
         
-        self.play(FadeIn(pred_label), Indicate(pred_label))
+        # Generate and plot residuals live
+        y_preds = hybrid_model(x_full, *popt)
+        residuals = y_full - y_preds
+        res_dots = VGroup(*[Dot(axes_res.c2p(p, r), color=GREEN_C, radius=0.03) for p, r in zip(y_preds, residuals)])
+        
+        res_title = Text("Residual Plot: Accuracy Validation", font_size=20, weight=BOLD).next_to(axes_res, UP, buff=0.1)
+        self.play(Write(res_title))
+        self.play(FadeIn(res_dots, lag_ratio=0.01))
+        
+        conclusion = Text("Model captures entire historical trend with minimal bias.", font_size=18, color=GOLD).to_edge(DOWN, buff=0.2)
+        self.play(Write(conclusion))
+
         self.wait(5)
