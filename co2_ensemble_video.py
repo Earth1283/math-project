@@ -140,28 +140,28 @@ class EnsembleExplainer(Scene):
         self.wait(2)
 
         # 6. Scene 5: Residual Analysis (New Ending)
-        # Shift current scene to top half
+        # Shift current scene to top half - REDUCED HEIGHT to avoid overlap
         new_axes_top = Axes(
             x_range=[1950, 2030, 20],
             y_range=[300, 450, 50],
             x_length=10,
-            y_length=3,
+            y_length=2.2,
             axis_config={"include_numbers": True, "label_constructor": Text, "font_size": 14},
             tips=False
-        ).to_edge(UP, buff=0.8)
+        ).to_edge(UP, buff=1.0)
         
-        # Bottom Axes for Residuals
+        # Bottom Axes for Residuals - REDUCED HEIGHT and repositioned
         axes_res = Axes(
             x_range=[300, 450, 50],
             y_range=[-2, 2, 1],
             x_length=10,
-            y_length=3,
+            y_length=2.2,
             axis_config={"include_numbers": True, "label_constructor": Text, "font_size": 14},
             tips=False
-        ).to_edge(DOWN, buff=0.8)
+        ).to_edge(DOWN, buff=1.2)
         
-        res_label = Text("Residuals (ppm)", font_size=14).next_to(axes_res, LEFT, buff=0.2).rotate(90*DEGREES)
-        res_x_label = Text("Predicted CO2 (ppm)", font_size=14).next_to(axes_res, DOWN, buff=0.2)
+        res_label = Text("Residuals (ppm)", font_size=16).next_to(axes_res, LEFT, buff=0.2).rotate(90*DEGREES)
+        res_x_label = Text("Predicted CO2 (ppm)", font_size=16).next_to(axes_res, DOWN, buff=0.2)
         res_zero_line = DashedLine(axes_res.c2p(300, 0), axes_res.c2p(450, 0), color=WHITE, stroke_opacity=0.5)
 
         # Transition to two-panel
@@ -173,18 +173,18 @@ class EnsembleExplainer(Scene):
             run_time=2
         )
         
-        self.play(Create(axes_res), Create(res_zero_line), Write(res_label), Write(res_x_label))
+        # Draw residual panel components
+        res_title = Text("Residual Plot: Accuracy Validation", font_size=24, weight=BOLD).next_to(axes_res, UP, buff=0.3)
+        self.play(Create(axes_res), Create(res_zero_line), Write(res_label), Write(res_x_label), Write(res_title))
         
         # Generate and plot residuals live
         y_preds = hybrid_model(x_full, *popt)
         residuals = y_full - y_preds
         res_dots = VGroup(*[Dot(axes_res.c2p(p, r), color=GREEN_C, radius=0.03) for p, r in zip(y_preds, residuals)])
         
-        res_title = Text("Residual Plot: Accuracy Validation", font_size=20, weight=BOLD).next_to(axes_res, UP, buff=0.1)
-        self.play(Write(res_title))
         self.play(FadeIn(res_dots, lag_ratio=0.01))
         
-        conclusion = Text("Model captures entire historical trend with minimal bias.", font_size=18, color=GOLD).to_edge(DOWN, buff=0.2)
+        conclusion = Text("Model captures entire historical trend with minimal bias.", font_size=20, color=GOLD).to_edge(DOWN, buff=0.15)
         self.play(Write(conclusion))
 
         self.wait(5)
