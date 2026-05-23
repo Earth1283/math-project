@@ -56,28 +56,19 @@ def main():
     print(f"Overall MAE:  {mae_total:.4f} ppm")
     print(f"Overall RMSE: {rmse_total:.4f} ppm")
 
-    # 4. Visualization
+    # 4. Visualization (Focused on Fit Alignment)
     plt.figure(figsize=(14, 10), dpi=300)
     
-    # Extended range for projection
-    years_plot = np.linspace(1959, 2050, 400)
+    # Range for current data alignment
+    years_plot = np.linspace(1959, 2024.5, 400)
     y_plot = hybrid_model(years_plot, *popt)
     
     # Plot components
-    plt.scatter(years_hist, co2_hist, color=GRAY, alpha=0.4, s=25, label='Historical Data (1959-2020)')
-    plt.scatter(years_val, co2_val, color=RED, marker='X', s=120, label='Recent Data (2022-2024)', zorder=5)
+    plt.scatter(years_hist, co2_hist, color=GRAY, alpha=0.5, s=30, label='Historical Data (1959-2020)')
+    plt.scatter(years_val, co2_val, color=RED, marker='X', s=150, label='Recent Data (2022-2024)', zorder=5)
     
-    plt.plot(years_plot, y_plot, color=GREEN, linewidth=3, label=f'Integrated Global Fit ($R^2$={r2_total:.4f})')
+    plt.plot(years_plot, y_plot, color=GREEN, linewidth=3.5, label=f'Integrated Global Fit ($R^2$={r2_total:.4f})')
     
-    # 2050 Projection
-    val_2050 = hybrid_model(2050, *popt)
-    plt.plot(2050, val_2050, 'o', color=GREEN, markersize=10)
-    plt.annotate(f"2050 Forecast: {val_2050:.1f} ppm", (2050, val_2050), 
-                 xytext=(-50, 40), textcoords='offset points', 
-                 arrowprops=dict(arrowstyle='->', color=GREEN, lw=2),
-                 fontsize=14, fontweight='bold', color=GREEN,
-                 bbox=dict(boxstyle='round,pad=0.3', fc='white', ec=GREEN, alpha=0.9))
-
     # Equation annotation
     eq_str = (f"$y(t) = ({popt[0]:.5f}t^2 + {popt[1]:.4f}t + {popt[2]:.1f}) + {popt[3]:.3f}e^{{{popt[4]:.4f}t}}$\n"
               f"where $t = Year - 1959$")
@@ -85,13 +76,17 @@ def main():
              transform=plt.gca().transAxes, fontsize=12, verticalalignment='top',
              bbox=dict(boxstyle='round', facecolor='white', alpha=0.8, edgecolor=GREEN))
 
-    plt.title('Integrated CO$_2$ Forecasting: Full-Spectrum Global Hybrid Model', fontsize=20, fontweight='bold')
+    plt.title('Global CO$_2$ Model Alignment: Integrated Quadratic-Exponential Fit', fontsize=20, fontweight='bold')
     plt.xlabel('Year', fontsize=14)
     plt.ylabel('CO$_2$ Concentration (ppm)', fontsize=14)
     plt.legend(loc='lower right', fontsize=12)
     plt.grid(True, linestyle=':', alpha=0.6)
-    plt.xlim(1955, 2055)
-    plt.ylim(300, 560)
+    plt.xlim(1955, 2026)
+    plt.ylim(310, 430)
+    
+    output_path = os.path.join("co2_projections", "hybrid_ensemble_fit.png")
+    plt.savefig(output_path)
+    print(f"\nModel alignment plot saved to {output_path}")
     plt.xlabel('Year', fontsize=14)
     plt.ylabel('CO$_2$ Concentration (ppm)', fontsize=14)
     plt.legend(loc='lower right', fontsize=12)
